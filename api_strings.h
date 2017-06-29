@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include "api_memory.h"
+#include <stdio.h>
+
 #if !defined(API_STRINGS)
 
 
@@ -8,7 +10,6 @@ struct string
     u32 NullTerminated;
     u32 Length;
     char* String;
-    char* LastChar;
 };
 
 struct fixed_element
@@ -27,6 +28,16 @@ struct fixed_element_size_list
     
 };
 
+inline b32 IsDigit(char Char)
+{
+    if ((Char == ' ' || Char == '.' ||
+         Char > '9' || Char < '0'))
+    {
+        return false;
+    }
+    return true;
+}
+
 static void* GetPartitionPointer(memory_partition Partition)
 {
     void* Result;
@@ -34,13 +45,14 @@ static void* GetPartitionPointer(memory_partition Partition)
     return Result;
 }
 
+//TODO(ray):Make a way to reclaim the memory from literals created here.
 static string* CreateStringFromLiteral(char* String,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
     
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
+    char* StringPtr;//(char*)Memory;
     while (*At)
     {
         StringPtr = (char*)PushSize(Memory,1);
@@ -48,12 +60,51 @@ static string* CreateStringFromLiteral(char* String,memory_partition* Memory)
         Result->Length++;
         At++;
     }
-    Result->LastChar = StringPtr;
     Result->String = (char*)StartPointer;
     return Result;
 }
 
+static string* AllocatEmptyString(memory_partition* Partition)
+{
+    Assert(Partition);
+    return CreateStringFromLiteral("",Partition);
+}
 
+static string* CreateStringFromToChar(char* String,char* End, memory_partition* Memory)
+{
+    string* Result = (string*)PushSize(Memory, sizeof(string));
+    
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StringPtr = 0;//(char*)Memory;
+    while (*At != *End)
+    {
+        StringPtr = (char*)PushSize(Memory, 1);
+        *StringPtr = *At;
+        Result->Length++;
+        At++;
+    }
+    Result->String = (char*)StartPointer;
+    return Result;
+}
+
+static string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
+{
+    string* Result = (string*)PushSize(Memory, sizeof(string));
+    
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StringPtr = 0;//(char*)Memory;
+    while (At != End)
+    {
+        StringPtr = (char*)PushSize(Memory, 1);
+        *StringPtr = *At;
+        Result->Length++;
+        At++;
+    }
+    Result->String = (char*)StartPointer;
+    return Result;
+}
 static string* CreateStringFromLength(char* String,u32 Length,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
@@ -70,7 +121,6 @@ static string* CreateStringFromLength(char* String,u32 Length,memory_partition* 
         At++;
         Iterator++;
     }
-    Result->LastChar = StringPtr;
     Result->String = (char*)StartPointer;
     return Result;
 }
@@ -87,7 +137,6 @@ static int Compare(string A, string B)
 {
     if (A.NullTerminated && B.NullTerminated)
     {
-        u32 Result;
         char* APtr = A.String;
         char* BPtr = B.String;
         while (*APtr && *BPtr)
@@ -100,7 +149,6 @@ static int Compare(string A, string B)
     }
     else
     {
-        u32 Result;
         char* APtr = A.String;
         char* BPtr = B.String;
         
@@ -116,27 +164,29 @@ static int Compare(string A, string B)
     return true;
 }
 
+//TODO(ray): Make sure this is never used in game.
 static void PrintStringToConsole(string String)
 {
-    for(u32 CharIndex = 0;CharIndex < String.Length;++CharIndex)
+    //for(u32 CharIndex = 0;CharIndex < String.Length;++CharIndex)
     {
-        char* Char = (String.String + CharIndex);
-        std::cout << *Char;
+        //char* Char = (String.String + CharIndex);
+        printf("%.*s", String.Length, String.String);
+        //std::cout << *Char;
     }
 }
 
-static string AppendString(string Front,string Back,memory_partition* Memory)
+static string* AppendString(string Front,string Back,memory_partition* Memory)
 {
-    string Result = {0};
+    string *Result = PushStruct(Memory,string);
     void* StartPointer = GetPartitionPointer(*Memory);
-    char* StrPtr = 0;
+    char* StrPtr;
     char* At = Front.String;
     u32 Iterations = 0;
     while(*At && Iterations < Front.Length)
     {
         StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
-        Result.Length++;
+        Result->Length++;
         At++;
         Iterations++;
     }
@@ -146,12 +196,11 @@ static string AppendString(string Front,string Back,memory_partition* Memory)
     {
         StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
-        Result.Length++;
+        Result->Length++;
         At++;
         Iterations++;
     }
-    Result.String = (char*)StartPointer;
-    Result.LastChar = At;
+    Result->String = (char*)StartPointer;
     return Result;
 }
 
@@ -177,20 +226,20 @@ static string* ElementIterator(fixed_element_size_list *Array)
         
         return Result;
     }
-    return 0;
+    //return 0;
 }
 
+//TODO(ray):This will fail in the case there is no seperator present in the string.
 static fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
 {
     
-	fixed_element_size_list Result = {0};
+    fixed_element_size_list Result = {0};
     Result.UnitSize = sizeof(string);
     
     char* At = Source.String;
     char* CurrentStart = Source.String;
-    string** Head = 0;
     u32 Length = 0;
-	u32 StringIndex = 0;
+    u32 StringIndex = 0;
     while(*At && StringIndex < Source.Length)
     {
         if(*Separator == *At)
@@ -207,8 +256,8 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
                 *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
                 CurrentStart = At + 1;
                 At++;//move past the separator
-				StringIndex++;
-
+                StringIndex++;
+                
                 SentinalElement->IsSentinal = true;
                 Result.Sentinal = SentinalElement;
                 Element->Data = Temp;
@@ -225,8 +274,8 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
                 
                 CurrentStart = At+1;
                 At++;//Move past the separator
-				StringIndex++;
-
+                StringIndex++;
+                
                 Element->Data = Temp;
                 
                 Result.Head = Result.Head->Next;
@@ -237,7 +286,7 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
             Result.Length++;
             Length = 0;
         }
-		StringIndex++;
+        StringIndex++;
         At++;
         Length++;
     }
@@ -245,16 +294,31 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
     {
         string** Temp = (string**)PushSize(Partition,sizeof(string**));
         fixed_element* Element = (fixed_element*)PushStruct(Partition,fixed_element);
-        *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
         Element->IsSentinal = false;
         
-        Element->Data = Temp;
-
-		Result.Head = Result.Head->Next;
-        Result.Head->Next = Element;
-        
-		Result.Length++;
-        Length = 0;
+        if(Result.Length == 0)
+        {
+            fixed_element* SentinalElement = (fixed_element*)PushStruct(Partition,fixed_element);
+            Element->IsSentinal = false;
+            
+            *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+            
+            SentinalElement->IsSentinal = true;
+            Result.Sentinal = SentinalElement;
+            Element->Data = Temp;
+            
+            Result.Head = Result.Sentinal;
+            Result.Head->Next = Element;
+        }
+        else
+        {
+            *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+            Element->Data = Temp;
+            
+            Result.Head = Result.Head->Next;
+            Result.Head->Next = Element;
+        }
+        Result.Length++;
     }
     Result.Head = Result.Sentinal;
     return Result;
