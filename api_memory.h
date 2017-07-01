@@ -1,4 +1,61 @@
 #if !defined(API_MEMORY)
+
+#if OSX
+#include <mach/mach_init.h>
+#include <mach/mach_vm.h>
+
+static void*
+OSXAllocateMemory(memory_index Size)
+{
+    mach_vm_address_t address;
+    kern_return_t kr;
+    mach_vm_size_t size = (mach_vm_size_t)Size;
+    kr = mach_vm_allocate(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
+    //TODO(ray):Make sure this actually casts properly.
+    return (void*)address;
+}
+
+static void OSXDeAllocateMemory(void* Memory,s64 Size)
+{
+    mach_vm_address_t Address = (mach_vm_address_t)Memory;
+    //mach_vm_size_t MachSize = (mach_vm_size_t)Size;
+    mach_vm_deallocate(mach_task_self(), Address, Size);
+}
+
+#endif
+
+#if WINDOWS
+#include <windows.h>
+
+static void*
+Win32AllocateMemory(memory_index Size)
+{
+    // TODO(ray): Verify the type we are passing in make sure
+    //we are getting the proper page size back.
+    void* Memory = VirtualAlloc(
+                                0,
+                                Size,
+                                MEM_COMMIT | MEM_RESERVE,
+                                PAGE_READWRITE
+                                );
+    if(!Memory)
+    {
+        // TODO(ray): Some error handling because we couldnt get the memory we need.
+    }
+    return Memory;
+}
+
+static void
+Win32DeAllocateMemory(void* Memory,s64 Size)
+{
+    VirtualFree(
+                Memory,
+                Size,
+                MEM_RELEASE
+                );
+}
+#endif
+
 enum partition_push_flag
 {
     PartitionFlag_ClearToZero = 0x1,
@@ -9,6 +66,8 @@ struct partition_push_params
     u32 Flags;
     u32 Alignment;
 };
+
+
 
 inline partition_push_params
 DefaultPartitionParams(void)
@@ -32,6 +91,27 @@ struct temp_memory
     memory_partition *Partition;
     u32 Used;
 };
+
+inline void*
+PlatformAllocateMemory(memory_index Size)
+{
+    
+#if OSX
+    return OSXAllocateMemory(Size);
+#elif WINDOWS
+    return Win32AllocateMemory(Size);
+#endif
+}
+
+inline void
+PlatformDeAllocateMemory(void* Memory, memory_index Size)
+{
+#if OSX
+    OSXDeAllocateMemory(Memory, Size);
+#elif WINDOWS
+    Win32DeAllocateMemory(Memory,Size);
+#endif
+}
 
 inline memory_index
 GetAlignmentOffset(memory_partition *Arena, memory_index Alignment)
@@ -109,7 +189,7 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-        u8* Byte = (u8*)Partition->Base + Partition->Used;
+    u8* Byte = (u8*)Partition->Base + Partition->Used;
     while (Size--)
     {
         *Byte++ = 0;
@@ -119,7 +199,7 @@ static void ClearSize(memory_partition *Partition,u32 Size)
 static void ClearToZero(void* Mem,u32 Size)
 {
     Assert(Size > 0)
-        u8* Byte = (u8*)Mem;
+    u8* Byte = (u8*)Mem;
     while (Size--)
     {
         *Byte++ = 0;
@@ -135,7 +215,7 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
 {
     //Assert Used < Size
     Assert(Partition->Used + Size <= Partition->Size)
-        void* Result;
+    void* Result;
     Result = (uint8_t*)Partition->Base + Partition->Used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
@@ -145,6 +225,7 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
     
     return Result;
 }
+
 
 #define API_MEMORY
 #endif
