@@ -317,17 +317,17 @@ Win32ReadEntireFile(string Path)
 
 #endif
 
-static read_file_result PlatformReadEntireFile(string* FileName,memory_partition Memory)
+static read_file_result PlatformReadEntireFile(string* FileName,memory_partition *Memory)
 {
 #if WINDOWS
-    string* AssetPath = BuildPathToAssets(&Memory);
-    string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,&Memory),&Memory);
+    string* AssetPath = BuildPathToAssets(Memory);
+    string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     return Win32ReadEntireFile(*FinalPathToAsset);
     
 #elif OSX
-    string* AssetPath = BuildPathToAssets(&Memory);
-    string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,&Memory),&Memory);
+    string* AssetPath = BuildPathToAssets(Memory);
+    string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     return OSXReadEntireFile(*FinalPathToAsset);
     

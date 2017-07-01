@@ -400,7 +400,7 @@ struct csv_data
     vector Lines;
 };
 
-//#include "../api_tokenizer.h"
+#include "../api_tokenizer.h"
 //NOTE(ray):Output will be a vector
 static csv_data*
 ParseCSV(memory_partition Memory, char* TextString)
