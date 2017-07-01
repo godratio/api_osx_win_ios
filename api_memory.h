@@ -1,4 +1,17 @@
-#if !defined(API_MEMORY)
+/*
+author: Ray Garner 
+email : raygarner13@gmail.com
+
+api_vector  - public domain  emory allocing and deallocing - 
+                                     no warranty implied; use at your own risk
+                                     
+                                     
+                                     LICENSE
+  See end of file for license information.
+  
+  */
+
+#if !defined(API_MEMORY_H)
 
 #if OSX
 #include <mach/mach_init.h>
@@ -33,11 +46,11 @@ Win32AllocateMemory(memory_index Size)
     // TODO(ray): Verify the type we are passing in make sure
     //we are getting the proper page size back.
     void* Memory = VirtualAlloc(
-                                0,
-                                Size,
-                                MEM_COMMIT | MEM_RESERVE,
-                                PAGE_READWRITE
-                                );
+        0,
+        Size,
+        MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE
+        );
     if(!Memory)
     {
         // TODO(ray): Some error handling because we couldnt get the memory we need.
@@ -49,10 +62,10 @@ static void
 Win32DeAllocateMemory(void* Memory,s64 Size)
 {
     VirtualFree(
-                Memory,
-                Size,
-                MEM_RELEASE
-                );
+        Memory,
+        Size,
+        MEM_RELEASE
+        );
 }
 #endif
 
@@ -189,7 +202,7 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-    u8* Byte = (u8*)Partition->Base + Partition->Used;
+        u8* Byte = (u8*)Partition->Base + Partition->Used;
     while (Size--)
     {
         *Byte++ = 0;
@@ -199,7 +212,7 @@ static void ClearSize(memory_partition *Partition,u32 Size)
 static void ClearToZero(void* Mem,u32 Size)
 {
     Assert(Size > 0)
-    u8* Byte = (u8*)Mem;
+        u8* Byte = (u8*)Mem;
     while (Size--)
     {
         *Byte++ = 0;
@@ -215,7 +228,7 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
 {
     //Assert Used < Size
     Assert(Partition->Used + Size <= Partition->Size)
-    void* Result;
+        void* Result;
     Result = (uint8_t*)Partition->Base + Partition->Used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
@@ -227,6 +240,48 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
 }
 
 
-#define API_MEMORY
+#define API_MEMORY_H
 #endif
 
+
+/*
+------------------------------------------------------------------------------
+This software is available under 2 licenses -- choose whichever you prefer.
+------------------------------------------------------------------------------
+ALTERNATIVE A - MIT License
+Copyright (c) 2017 Sean Barrett
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+------------------------------------------------------------------------------
+ALTERNATIVE B - Public Domain (www.unlicense.org)
+This is free and unencumbered software released into the public domain.
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+------------------------------------------------------------------------------
+*/
