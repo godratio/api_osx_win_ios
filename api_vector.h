@@ -2,7 +2,7 @@
 //
 #if !defined(API_VECTOR)
 #include <stdint.h>
-#include <memory>
+
 #include "api_memory.h"
 typedef uint32_t u32;
 typedef uint32_t b32;
@@ -37,8 +37,8 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
     Result.StartAt = -1;
     Result.Pushable = true;
     //TODO(ray): change this to get memory froma a pre allocated partition.
-    void* StartingMemory = VirtualAlloc(0, Result.TotalSize,
-                                        MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE); //malloc(Result.TotalSize);
+    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);//VirtualAlloc(0, Result.TotalSize,
+    //           MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE); //malloc(Result.TotalSize);
     memory_partition* Partition = (memory_partition*)StartingMemory;
     AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(memory_partition*));
     Result.Partition = Partition;
@@ -47,9 +47,9 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
 }
 
 #define GetVectorElement(Type,Vector,Index) (Type*)GetVectorElement_(Vector,Index)
-#define GetVectorFirst(Type,Vector) (Type)GetVectorElement_(Vector,0) 
-#define GetVectorLast(Type,Vector) (Type)GetVectorElement_(Vector,Vector.Count) 
-#define PeekVectorElement(Type,Vector) (Type*)GetVectorElement_(Vector,*Vector.Count-1) 
+#define GetVectorFirst(Type,Vector) (Type)GetVectorElement_(Vector,0)
+#define GetVectorLast(Type,Vector) (Type)GetVectorElement_(Vector,Vector.Count)
+#define PeekVectorElement(Type,Vector) (Type*)GetVectorElement_(Vector,*Vector.Count-1)
 
 static void* GetVectorElement_(vector* Vector, u32 Index)
 {
@@ -193,14 +193,10 @@ static void FreeVectorMem(vector *Vector)
     //TIMED_BLOCK();
     if(Vector->TotalSize > 0)
     {
-        VirtualFree(
-            Vector->Partition->Base,
-            Vector->Partition->Size,
-            MEM_RELEASE
-            );
         ClearVector(Vector);
+        PlatformDeAllocateMemory(Vector->Partition->Base,Vector->Partition->Size);
+        
     }
-    
 }
 
 #define API_VECTOR
