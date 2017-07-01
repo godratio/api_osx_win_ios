@@ -3,7 +3,8 @@
 #include <stdio.h>
 
 #if !defined(API_STRINGS)
-
+#define MAX_FILENAME_LENGTH 50
+#define MAX_FILE_EXTENSION_LENGTH 3
 
 struct string
 {
@@ -152,7 +153,7 @@ static int Compare(string A, string B)
         char* APtr = A.String;
         char* BPtr = B.String;
         
-        u32 MaxIterations = (A.Length > B.Length) ? A.Length : B.Length; 
+        u32 MaxIterations = (A.Length > B.Length) ? A.Length : B.Length;
         for(u32 Index = 0;Index < MaxIterations;++Index)
         {
             if (*APtr != *BPtr)
@@ -173,6 +174,74 @@ static void PrintStringToConsole(string String)
         printf("%.*s", String.Length, String.String);
         //std::cout << *Char;
     }
+}
+
+static string* GetExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem,b32 KeepFileExtensionDelimiter = false)
+{
+    Assert(FileNameOrPathWithExtension->Length > 1)
+    
+    //walk back from end of string till we hit a '.'
+    char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
+    u32 LookBack = 1;
+    if(KeepFileExtensionDelimiter)
+    {
+        LookBack = 0;
+    }
+    u32 StepsTaken = 1;
+    while (*(End - LookBack) != '.')
+    {
+        --End;
+        ++StepsTaken;
+        if (StepsTaken > MAX_FILE_EXTENSION_LENGTH)
+        {
+            //TODO(ray):Log this as an error?
+            break;
+        }
+    }
+    string* ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
+    return ExtensionName;
+}
+static string* StripExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem)
+{
+    Assert(FileNameOrPathWithExtension->Length > 1)
+    
+    //walk back from end of string till we hit a '.'
+    char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
+    u32 StepCount = 1;
+    while (*End != '.')
+    {
+        --End;
+        if (StepCount > MAX_FILENAME_LENGTH)
+        {
+            //TODO(ray):Log this as an error?
+            break;
+        }
+    }
+    return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
+}
+
+static string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,memory_partition *StringMem,b32 KeepFileExtensionDelimeter = false)
+{
+    Assert(FileNameOrPathWithExtension->Length > 1)
+    
+    string* Result = StripExtension(FileNameOrPathWithExtension, StringMem);
+    string* ExtensionName = GetExtension(FileNameOrPathWithExtension, StringMem,KeepFileExtensionDelimeter);
+    //string TerminatedExtensionName = NullTerminate(*ExtensionName);
+    *Extension = *ExtensionName;
+    return Result;
+}
+
+static u32 CalculateStringLength(string* String)
+{
+    u32 Length = 0;
+    char* At = String->String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
+    String->Length = Length;
+    return Length;
 }
 
 static string* AppendString(string Front,string Back,memory_partition* Memory)

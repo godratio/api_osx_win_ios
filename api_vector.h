@@ -23,7 +23,7 @@ struct vector
 //TODO(ray):Add memory alignment options here
 static vector CreateVector(u32 StartSize,u32 UnitSize)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(StartSize > 0);
     Assert(UnitSize > 0);
     
@@ -53,7 +53,7 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
 
 static void* GetVectorElement_(vector* Vector, u32 Index)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(Vector);
     void* Location = (uint8_t*)Vector->Base + (Index * Vector->UnitSize);
     return Location;
@@ -61,7 +61,7 @@ static void* GetVectorElement_(vector* Vector, u32 Index)
 
 static void* SetVectorElement(vector* Vector, u32 ElementIndex,void* Element,b32 Copy = true)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(Vector && Element);
     Vector->Pushable = false;
     //TODO(ray):have some protection here to make sure we are added in the right type.
@@ -93,7 +93,7 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex,void* Element,b32
 //NOTE(ray):If you use SetVectorElement Pushes will no longer work properly.
 static void PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(Vector && Element);
     Assert(Vector->Pushable);
     //TODO(ray):have some protection here to make sure we are added in the right type.
@@ -120,7 +120,7 @@ static void PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
 #define PushAndCastEmptyVectorElement(Type,Vector) (Type*)PushEmptyVectorElement_(Vector)
 static void* PushEmptyVectorElement_(vector* Vector)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     //TODO(ray):have some protection here to make sure we are added in the right type.
     uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
     
@@ -132,7 +132,7 @@ static void* PushEmptyVectorElement_(vector* Vector)
 #define PopAndPeekVectorElement(Type,Vector) (Type*)PopAndPeekVectorElement_(Vector)
 static void* PopAndPeekVectorElement_(vector* Vector)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(Vector);
     void* Result = GetVectorElement_(Vector,Vector->Count);
     Vector->Partition->Used -= Vector->UnitSize;
@@ -143,7 +143,7 @@ static void* PopAndPeekVectorElement_(vector* Vector)
 
 static void PopVectorElement(vector* Vector)
 {
-    TIMED_BLOCK();
+    //TIMED_BLOCK();
     Assert(Vector);
     Vector->Partition->Used -= Vector->UnitSize;
     Vector->TotalSize -= Vector->UnitSize;
