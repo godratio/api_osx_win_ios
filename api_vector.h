@@ -67,6 +67,7 @@ static void* GetVectorElement_(vector* Vector, u32 Index)
 {
     //TIMED_BLOCK();
     Assert(Vector);
+    Assert(Vector->Count >= Index + 1);
     void* Location = (uint8_t*)Vector->Base + (Index * Vector->UnitSize);
     return Location;
 }
