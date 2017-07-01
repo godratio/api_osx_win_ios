@@ -67,7 +67,10 @@ static void* GetVectorElement_(vector* Vector, u32 Index)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Assert(Vector->Count >= Index + 1);
+    
+    //TODO(Ray):May want to think about this. Need to give a hint to the client code.
+    //Get and PushCast are almost the same.
+    //Assert(Vector->Count >= Index + 1);
     void* Location = (uint8_t*)Vector->Base + (Index * Vector->UnitSize);
     return Location;
 }

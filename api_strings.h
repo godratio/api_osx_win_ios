@@ -11,8 +11,8 @@ api_strings  - public domain string handling -
   
   */
 #include <stdint.h>
-#include "api_memory.h"
 #include <stdio.h>
+#include "api_memory.h"
 
 #if !defined(API_STRINGS)
 #define MAX_FILENAME_LENGTH 50
