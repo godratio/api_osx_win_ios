@@ -384,49 +384,6 @@ ParseFloat(memory_partition *Partition, string* FloatString)
     return TrueFraction;
 }
 
-struct csv_field
-{
-    string* Name;
-    string* Text;
-};
-
-struct csv_line
-{
-    vector Fields;
-};
-
-struct csv_data
-{
-    vector Lines;
-};
-
-#include "../api_tokenizer.h"
-//NOTE(ray):Output will be a vector
-static csv_data*
-ParseCSV(memory_partition Memory, char* TextString)
-{
-    csv_data Data;
-    u32 MemSize = 500;
-    Data.Lines = CreateVector(MemSize, sizeof(csv_line));
-    
-    b32 IsParsing = true;
-    tokenizer Tokenizer = {0};
-    Tokenizer.At = TextString;
-    vector TokenVector = CreateVector(MemSize, sizeof(token));
-    
-    while(IsParsing)
-    {
-        token Token = GetToken(&Tokenizer, &Memory);
-        PushVectorElement(&TokenVector, &Token);
-        
-        if (Token.Type == Token_EndOfStream)
-        {
-            break;
-        }
-    }
-    return 0;
-}
-
 #define API_PARSE_H
 #endif
 
