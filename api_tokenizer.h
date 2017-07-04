@@ -1,5 +1,5 @@
 #if !defined(API_TOKENIZER_H)
-#include "api_osx_win/api_vector.h"
+#include "api_vector.h"
 
 enum token_type
 {
@@ -56,6 +56,39 @@ static b32 IsNewLine(char At)
     return (At == '\n' || At == '\r');
 }
 
+static b32 IsSingleLineCommentCPPStyle(char* At)
+{
+    return (At[0] == '/' && At[1] == '/');
+}
+
+static b32 IsMultiLineCommentCStyle(char* At)
+{
+    return (At[0] == '/' && At[1] == '*');
+}
+static b32 IsMultiLineCommentCPPStyleEnd(char* At)
+{
+    return (At[0] == '*' && At[1] == '/');
+}
+static b32 IsDoubleDash(char* At)
+{
+    return (At[0] == '-' && At[1] == '-');
+}
+
+static b32 RequireToken(token Token,token_type TokenType)
+{
+    
+    return (Token.Type == TokenType);
+}
+
+static b32 MatchToken(token Token,string* Test)
+{
+    if(Compare(*Token.Data,*Test))
+    {
+        return true;
+    }
+    return false;
+}
+
 static b32 IsAlpha(char At)
 {
     b32 Result = ((At >= 'a' && At <= 'z') ||
@@ -67,7 +100,38 @@ static b32 IsNum(char At)
 {
     return (At >= '0' && At <= '9') || (At == '-') || (At == '.');
 }
+static void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
+{
+    for(;;)
+    {
+        if(IsNewLine(*Tokenizer->At))
+        {
+            //++Tokenizer->At;
+            return;
+        }
+        else
+        {
+            ++Tokenizer->At;
+        }
+        
+    }
+}
 
+static void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
+{
+    for(;;)
+    {
+        if(IsMultiLineCommentCPPStyleEnd(Tokenizer->At))
+        {
+            Tokenizer->At++;
+            return;
+        }
+        else
+        {
+            ++Tokenizer->At;
+        }
+    }
+}
 static void EatAllWhiteSpace(tokenizer *Tokenizer)
 {
     while (IsWhiteSpace(*Tokenizer->At))
@@ -236,104 +300,6 @@ GetCSVToken(tokenizer *Tokenizer,memory_partition* Partition)
     return Result;
 }
 
-static token
-GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
-{
-	token Result;
-	EatAllWhiteSpace(Tokenizer);
-
-	string* TokenString;
-	token_type Type;
-	u32 TokenLength = 0;
-	char *Start = Tokenizer->At;
-	b32 HasAdvanced = false;
-	while (!IsWhiteSpace(*Tokenizer->At))
-	{
-		switch (*Tokenizer->At)
-		{
-			case '/': //Comments considered white space
-			{
-				if (*(Tokenizer->At + 1) == '/')
-			
-					Result.Type = Token_Comment;
-					while (!IsNewLine(*Tokenizer->At++))continue;
-					Result.Data = CreateStringFromToChar(Tokenizer->At, "\n", Partition);
-					HasAdvanced = true;
-					return Result;
-				}
-				else if (*(Tokenizer->At + 1) == '*')
-				{
-					Result.Type = Token_Comment;
-					while (!((*Tokenizer->At == '*') && (*(Tokenizer->At + 1)) == '/')) 
-					{
-						++Tokenizer->At;
-						continue;
-					}
-					Result.Data = CreateStringFromToChar(Tokenizer->At, "\n", Partition);
-					HasAdvanced = true;
-					return Result;
-				}
-			}
-			case '(': {Result.Type = Token_OpenParen; }break;
-			case ')': {Result.Type = Token_CloseParen; }break;
-			case '{': {Result.Type = Token_OpenBrace; }break;
-			case '}': {Result.Type = Token_CloseBrace; }break;
-			case ':': {Result.Type = Token_Colon; }break;
-			case ',': {Result.Type = Token_Comma; }break;
-			case '_': {Result.Type = Token_Underscore; }break;
-			case '-': 
-			{
-				if (*(Tokenizer->At + 1) == '-')
-				{
-
-				}
-				Result.Type = Token_Underscore; 
-			}break;
-			case '\0': {
-				Result.Type = Token_EndOfStream;
-				return Result;
-			}break;
-			case '"':
-			{
-				Result.Type = Token_String;
-				Tokenizer->At++;
-				char* Start = Tokenizer->At;
-				while (*(Tokenizer->At) != '"')
-				{
-					Tokenizer->At++;
-					continue;
-				}
-				Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
-				Tokenizer->At++;
-				return Result;
-			}break;
-			default:
-			{
-				Result.Type = Token_Identifier;
-				char* Start = Tokenizer->At;
-				while (IsAlpha(*Tokenizer->At) ||
-					IsNum(*Tokenizer->At))
-				{
-					Tokenizer->At++;
-					continue;
-				}
-				Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
-				if (*Tokenizer->At == '\r' || *Tokenizer->At == '\n')
-				{
-					//Go back one to catch the new line or return carriage on next 
-					//iteration.
-					//Tokenizer->At--;
-				}
-				//HasAdvanced = true;
-				return Result;
-			}break;
-		}
-		if (!HasAdvanced)++Tokenizer->At;
-
-
-	}
-	return Result;
-}
 
 struct csv_field
 {
@@ -412,22 +378,132 @@ struct cfg_data
 	vector Entries;
 };
 
-static b32 IsDoubleDash(token A,token B)
+static token
+GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
 {
-	if (A.Type == Token_Dash && B.Type == Token_Dash)
-	{
-		return true;
-	}
-	return false;
+    token Result;
+    EatAllWhiteSpace(Tokenizer);
+    //Comment skipped.
+    if(IsSingleLineCommentCPPStyle(Tokenizer->At))
+    {
+        ParseSingleLineCommentCPPStyle(Tokenizer);
+    }
+    if(IsMultiLineCommentCStyle(Tokenizer->At))
+    {
+        ParseMultLineCommentCStyle(Tokenizer);
+    }
+    char AtChar = *Tokenizer->At;
+    ++Tokenizer->At;
+        switch (AtChar)
+        {
+            
+            case '(': {Result.Type = Token_OpenParen; }break;
+            case ')': {Result.Type = Token_CloseParen; }break;
+            case '{': {Result.Type = Token_OpenBrace; }break;
+            case '}': {Result.Type = Token_CloseBrace; }break;
+            case ':': {Result.Type = Token_Colon; }break;
+            case ',': {Result.Type = Token_Comma; }break;
+            case '_': {Result.Type = Token_Underscore; }break;
+            case '-': 
+            {
+               if(Tokenizer->At[0] == '-')
+               {
+                   Result.Type = Token_Dash;
+                   Tokenizer->At = Tokenizer->At + 2;
+                   return Result;
+               }
+            }break;
+            case '\0': {
+                Result.Type = Token_EndOfStream;
+                return Result;
+            }break;
+            case '"':
+            {
+                Result.Type = Token_String;
+                char* Start = Tokenizer->At;
+                while (Tokenizer->At[0] != '"')
+                {
+                    Tokenizer->At++;
+                    continue;
+                }
+                Tokenizer->At++;
+                Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+                return Result;
+            }break;
+            default:
+            {
+                if(IsAlpha(AtChar))
+                {
+                    Result.Type = Token_Identifier;
+                    char* Start = Tokenizer->At - 1;
+                    while (IsAlpha(*Tokenizer->At) ||
+                           IsNum(*Tokenizer->At))
+                    {
+                        Tokenizer->At++;
+                        continue;
+                    }
+                    Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                }
+                else
+                {
+                    Result.Type = Token_Unknown;
+                }
+                
+                
+                return Result;
+            }break;
+        }
+    return Result;
 }
 
+static void ParseConfigKeyValue(tokenizer* Tokenizer,memory_partition* Memory)
+{
+    token Token = GetCFGToken(Tokenizer,Memory);
+    cfg_entry EntryCanidate;
+    
+    if(RequireToken(Token, Token_Identifier))
+    {
+        EntryCanidate.Key = *Token.Data;
+        Token = GetCFGToken(Tokenizer,Memory);
+        if(Token.Type == Token_Colon)
+        {
+            Token = GetCFGToken(Tokenizer,Memory);
+            if(Token.Type == Token_String)
+            {
+                EntryCanidate.Text = *Token.Data;
+                ParseConfigKeyValue(Tokenizer, Memory);
+            }
+            else
+            {
+                
+            }
+        }
+        else
+        {
+            //TODO(ray):Missing semi colen breaking.
+        }
+    }
+    else
+    {
+        //TODO(ray): No identifier for key.
+    }
+}
+
+static void ParseConfigBlock(tokenizer* Tokenizer,memory_partition *Memory)
+{
+    token NameToken = GetCFGToken(Tokenizer,Memory);
+    string* TaskName = NameToken.Data;
+    
+    ParseConfigKeyValue(Tokenizer, Memory);
+    
+}
 //NOTE(ray):Output will be a vector
 static cfg_data
 ParseConfig(memory_partition Memory, char* TextString)
 {
 	cfg_data Data;
 	u32 MemSize = 500;
-	Data.Entries = CreateVector(MemSize, sizeof(csv_line));
+	//Data.Entries = CreateVector(MemSize, sizeof(csv_line));
 
 	b32 IsParsing = true;
 	tokenizer Tokenizer = { 0 };
@@ -435,6 +511,8 @@ ParseConfig(memory_partition Memory, char* TextString)
 
 	u32 LineNumber = 0;
 	token PrevToken;
+
+    #if 0
 	while (IsParsing)
 	{
 		token Token = GetRawToken(&Tokenizer, &Memory);
@@ -489,9 +567,28 @@ ParseConfig(memory_partition Memory, char* TextString)
 		PrevToken = Token;
 
 	}
-
-	FreeVectorMem(&TokenVector);
-	return Data;
+#else
+    for (;;)
+    {
+        token Token = GetCFGToken(&Tokenizer,&Memory);
+        if(Token.Type == Token_Dash)
+        {
+            ParseConfigBlock(&Tokenizer,&Memory);
+        }
+        if (Token.Type == Token_EndOfStream)
+        {
+            break;
+        }
+    }
+   
+    
+        
+    
+    
+    
+    #endif
+    return Data;
+   
 }
 
 
