@@ -310,7 +310,11 @@ static string* ElementIterator(fixed_element_size_list *Array)
     //return 0;
 }
 
-//TODO(ray):This will fail in the case there is no seperator present in the string.
+//TODO(ray): Old function can do this much better.  REDO THIS!
+//TODO(ray): Its garbage perhaps.
+//TODO(ray): This will fail in the case there is no seperator present in the string.
+//Note(ray): The data type fixed_element... does not make sense.
+//priority level low because it just works right now.
 static fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
 {
     
