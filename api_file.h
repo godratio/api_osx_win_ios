@@ -318,11 +318,9 @@ Win32ReadEntireFile(string Path)
 static read_file_result PlatformReadEntireFile(string* FileName, memory_partition *Memory)
 {
 #if WINDOWS
-	NullTerminate(*FileName);
-	return Win32ReadEntireFile(*FinalPathToAsset);
+	return Win32ReadEntireFile(NullTerminate(*FileName));
 #elif OSX
-	NullTerminate(*FileName);
-	return OSXReadEntireFile(*FinalPathToAsset);
+	return OSXReadEntireFile(NullTerminate(*FileName));
 #endif
 }
 

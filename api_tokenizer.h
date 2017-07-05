@@ -349,6 +349,7 @@ ParseCSV(memory_partition Memory, char* TextString)
         else if(Token.Type == Token_ReturnCarriage || Token.Type == Token_NewLine)
         {
             if(PrevToken.Type != Token_ReturnCarriage)
+			{
                 ++LineNumber;
                 CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
                 CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
@@ -536,7 +537,7 @@ ParseConfig(memory_partition Memory, char* TextString)
    
 }
 
-
+#if 0
 static token
 GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
 {
@@ -614,5 +615,7 @@ GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
     }
     return Result;
 }
+#endif
+
 #define API_TOKENIZER_H
 #endif
