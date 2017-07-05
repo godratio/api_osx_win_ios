@@ -23,7 +23,8 @@ enum token_type
     Token_NewLine,
 	Token_ForwardSlash,
 	Token_BackwardSlash,
-    Token_Unknown
+    Token_Unknown,
+    
 };
 
 struct token
@@ -373,9 +374,14 @@ struct cfg_entry
 	string Text;
 };
 
+struct cfg_block
+{
+    vector Entries;
+};
+
 struct cfg_data
 {
-	vector Entries;
+	vector Blocks;
 };
 
 static token
@@ -456,7 +462,7 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
     return Result;
 }
 
-static void ParseConfigKeyValue(tokenizer* Tokenizer,memory_partition* Memory)
+static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_partition* Memory)
 {
     token Token = GetCFGToken(Tokenizer,Memory);
     cfg_entry EntryCanidate;
@@ -471,7 +477,8 @@ static void ParseConfigKeyValue(tokenizer* Tokenizer,memory_partition* Memory)
             if(Token.Type == Token_String)
             {
                 EntryCanidate.Text = *Token.Data;
-                ParseConfigKeyValue(Tokenizer, Memory);
+                PushVectorElement(&Block->Entries, &EntryCanidate);
+                ParseConfigKeyValues(Block,Tokenizer, Memory);
             }
             else
             {
@@ -489,12 +496,14 @@ static void ParseConfigKeyValue(tokenizer* Tokenizer,memory_partition* Memory)
     }
 }
 
-static void ParseConfigBlock(tokenizer* Tokenizer,memory_partition *Memory)
+static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
     
-    ParseConfigKeyValue(Tokenizer, Memory);
+    cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    Block->Entries = CreateVector(2, sizeof(cfg_entry));
+    ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
 //NOTE(ray):Output will be a vector
@@ -502,95 +511,110 @@ static cfg_data
 ParseConfig(memory_partition Memory, char* TextString)
 {
 	cfg_data Data;
-	u32 MemSize = 500;
-	//Data.Entries = CreateVector(MemSize, sizeof(csv_line));
-
-	b32 IsParsing = true;
+	u32 MemSize = 30;
+	Data.Blocks = CreateVector(MemSize, sizeof(cfg_block));
+    
+    b32 IsParsing = true;
 	tokenizer Tokenizer = { 0 };
 	Tokenizer.At = TextString;
 
 	u32 LineNumber = 0;
 	token PrevToken;
-
-    #if 0
-	while (IsParsing)
-	{
-		token Token = GetRawToken(&Tokenizer, &Memory);
-		// Ignore single line type comments.
-		if (Token.Type == Token_ForwardSlash && PrevToken.Type == Token_ForwardSlash)
-		{
-			//Is a comment line
-			while (Token.Type != Token_NewLine || Token.Type != Token_ReturnCarriage)
-			{
-				Token = GetRawToken(&Tokenizer, &Memory);
-			}
-		}
-
-		// Ignore block style comments.
-		if (Token.Type != Token_Asterisk && PrevToken.Type == Token_Asterisk)
-		{
-			while (Token.Type != Token_ForwardSlash && PrevToken.Type == Token_Asterisk)
-			{
-				Token = GetRawToken(&Tokenizer, &Memory);
-			}
-		}
-		// -- dash is the start of a config block
-		if (!IsDoubleDash(Token,PrevToken))
-		{
-			Token = GetRawToken(&Tokenizer, &Memory)
-			if(Token.Type == Token_Identifier && Compare(*Token.Data,"task"))
-			{
-				cfg_entry Entry;
-				while (!IsDoubleDash(Token, PrevToken) || Token.Type != Token_EndOfStream)
-				{
-					Token = GetRawToken(&Tokenizer, &Memory);
-					if (Token.Type == Token_Colon)
-					{
-						//next identifier is a data.
-						//prev identifier is the key.
-
-					}
-					if (Token.Type == Token_Identifier)
-					{
-						Entry.Key = Token.Data;
-					}
-
-				}
-			}
-			
-		}
-
-		if (Token.Type == Token_EndOfStream)
-		{
-			break;
-		}
-		PrevToken = Token;
-
-	}
-#else
+    
     for (;;)
     {
         token Token = GetCFGToken(&Tokenizer,&Memory);
         if(Token.Type == Token_Dash)
         {
-            ParseConfigBlock(&Tokenizer,&Memory);
+            ParseConfigBlock(&Data,&Tokenizer,&Memory);
         }
         if (Token.Type == Token_EndOfStream)
         {
             break;
         }
     }
-   
     
-        
-    
-    
-    
-    #endif
     return Data;
    
 }
 
 
+static token
+GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
+{
+    token Result;
+    EatAllWhiteSpace(Tokenizer);
+    //Comment skipped.
+    if(IsSingleLineCommentCPPStyle(Tokenizer->At))
+    {
+        ParseSingleLineCommentCPPStyle(Tokenizer);
+    }
+    if(IsMultiLineCommentCStyle(Tokenizer->At))
+    {
+        ParseMultLineCommentCStyle(Tokenizer);
+    }
+    char AtChar = *Tokenizer->At;
+    ++Tokenizer->At;
+    switch (AtChar)
+    {
+            
+        case '(': {Result.Type = Token_OpenParen; }break;
+        case ')': {Result.Type = Token_CloseParen; }break;
+        case '{': {Result.Type = Token_OpenBrace; }break;
+        case '}': {Result.Type = Token_CloseBrace; }break;
+        case ':': {Result.Type = Token_Colon; }break;
+        case ',': {Result.Type = Token_Comma; }break;
+        case '_': {Result.Type = Token_Underscore; }break;
+        case '-':
+        {
+            if(Tokenizer->At[0] == '-')
+            {
+                Result.Type = Token_Dash;
+                Tokenizer->At = Tokenizer->At + 2;
+                return Result;
+            }
+        }break;
+        case '\0': {
+            Result.Type = Token_EndOfStream;
+            return Result;
+        }break;
+        case '"':
+        {
+            Result.Type = Token_String;
+            char* Start = Tokenizer->At;
+            while (Tokenizer->At[0] != '"')
+            {
+                Tokenizer->At++;
+                continue;
+            }
+            Tokenizer->At++;
+            Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+            return Result;
+        }break;
+        default:
+        {
+            if(IsAlpha(AtChar))
+            {
+                Result.Type = Token_Identifier;
+                char* Start = Tokenizer->At - 1;
+                while (IsAlpha(*Tokenizer->At) ||
+                       IsNum(*Tokenizer->At))
+                {
+                    Tokenizer->At++;
+                    continue;
+                }
+                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+            }
+            else
+            {
+                Result.Type = Token_Unknown;
+            }
+            
+            
+            return Result;
+        }break;
+    }
+    return Result;
+}
 #define API_TOKENIZER_H
 #endif
