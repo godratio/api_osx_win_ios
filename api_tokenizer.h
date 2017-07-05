@@ -348,7 +348,6 @@ ParseCSV(memory_partition Memory, char* TextString)
         else if(Token.Type == Token_ReturnCarriage || Token.Type == Token_NewLine)
         {
             if(PrevToken.Type != Token_ReturnCarriage)
-            {
                 ++LineNumber;
                 CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
                 CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
@@ -360,7 +359,6 @@ ParseCSV(memory_partition Memory, char* TextString)
             break;
         }
         PrevToken = Token;
-        
     }
     
     FreeVectorMem(&TokenVector);

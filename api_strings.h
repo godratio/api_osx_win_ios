@@ -140,9 +140,12 @@ static string* CreateStringFromLength(char* String,u32 Length,memory_partition* 
 
 static string NullTerminate(string Source)
 {
-    char* NullTerminatePoint = Source.String + Source.Length;
-    *NullTerminatePoint = '\0';
-    Source.NullTerminated = true;
+	if (!Source.NullTerminated)
+	{
+		char* NullTerminatePoint = Source.String + Source.Length;
+		*NullTerminatePoint = '\0';
+		Source.NullTerminated = true;
+	}
     return Source;
 }
 

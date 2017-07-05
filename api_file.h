@@ -58,8 +58,6 @@ static string* BuildPathToAssets(memory_partition *Partition)
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
 }
 
-
-
 static dir_files_result
 OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
 {
@@ -317,23 +315,31 @@ Win32ReadEntireFile(string Path)
 
 #endif
 
-static read_file_result PlatformReadEntireFile(string* FileName,memory_partition *Memory)
+static read_file_result PlatformReadEntireFile(string* FileName, memory_partition *Memory)
+{
+#if WINDOWS
+	NullTerminate(*FileName);
+	return Win32ReadEntireFile(*FinalPathToAsset);
+#elif OSX
+	NullTerminate(*FileName);
+	return OSXReadEntireFile(*FinalPathToAsset);
+#endif
+}
+
+static read_file_result PlatformReadEntireFileFromAssetFolder(string* FileName,memory_partition *Memory)
 {
 #if WINDOWS
     string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     return Win32ReadEntireFile(*FinalPathToAsset);
-    
 #elif OSX
     string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     return OSXReadEntireFile(*FinalPathToAsset);
-    
 #endif
 }
-
 
 static dir_files_result PlatformGetAllFilesInDir(string TerminatedPathTestDir,memory_partition *StringMem)
 {
