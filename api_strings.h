@@ -10,6 +10,7 @@ api_strings  - public domain string handling -
   See end of file for license information.
   
   */
+
 #include <stdint.h>
 #include <stdio.h>
 #include "api_memory.h"
@@ -30,6 +31,14 @@ struct fixed_element
     bool IsSentinal;
     string** Data;
     fixed_element* Next;
+};
+
+struct strings
+{
+    string* Strings;
+    u32 StringCount;
+    u32 StringIteratorPointer;
+    u32 IteratorIndex;
 };
 
 struct fixed_element_size_list
@@ -308,6 +317,54 @@ static string* ElementIterator(fixed_element_size_list *Array)
         return Result;
     }
     //return 0;
+}
+
+static string* API_String_Iterator(strings* StringArray)
+{
+    Assert(StringArray->StringCount > 0)
+    
+    if(StringArray->IteratorIndex > StringArray->StringCount - 1)
+    {
+        StringArray->IteratorIndex = 0;
+        StringArray->StringIteratorPointer = 0;
+        return 0;
+    }
+    else{
+        string* Result = (string*)((u8*)StringArray->Strings  + StringArray->StringIteratorPointer);
+        StringArray->StringIteratorPointer += sizeof(string) + Result->Length;
+        StringArray->IteratorIndex++;
+        return Result;
+    }
+}
+
+static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory)
+{
+    strings Result = {0};
+    Source = NullTerminate(Source);
+    char* At = Source.String;
+    char* Start  = At;
+    
+    while(*At++)
+    {
+        if(*At == *Separator)
+        {
+            if(Result.StringCount == 0)
+            {
+                //string* FirstString =
+                Result.Strings = CreateStringFromToPointer(Start, At, StringMemory);;
+                Result.StringCount++;
+                Start = At;
+            }
+            else
+            {
+                string* NextString = CreateStringFromToPointer(Start, At, StringMemory);
+                Result.StringCount++;
+                Start = At;
+            }
+        }
+    }
+    
+    return Result;
 }
 
 //TODO(ray): Old function can do this much better.  REDO THIS!
