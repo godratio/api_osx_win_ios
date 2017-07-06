@@ -13,7 +13,7 @@ api_parse  - public domain misc parsing -
 
 
 #if !defined (API_PARSE_H)
-
+#include "api_strings.h"
 #include <stdint.h>
 #include <limits.h>
 #include <math.h>
@@ -91,6 +91,25 @@ struct float_basis
     int Whole;
     f32 Fraction;
 };
+
+static b32 
+ParseBoolFromString(string Test,memory_partition *Memory)
+{
+	b32 Result = false;
+	if (Compare(*CreateStringFromLiteral("yes", Memory), Test))
+	{
+		Result = true;
+	}
+	else if (Compare(*CreateStringFromLiteral("true", Memory), Test))
+	{
+		Result = true;
+	}
+	else if (Compare(*CreateStringFromLiteral("1", Memory), Test))
+	{
+		Result = true;
+	}
+	return Result;
+}
 
 //TODO(RAY):This does not properly trunucate a float instead it just removes the decimal point
 static s32

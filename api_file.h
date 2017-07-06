@@ -317,7 +317,16 @@ Win32ReadEntireFile(string Path)
 
 #endif
 
-static read_file_result PlatformReadEntireFile(string* FileName,memory_partition *Memory)
+static read_file_result PlatformReadEntireFile(string* FileName, memory_partition *Memory)
+{
+#if WINDOWS
+	return Win32ReadEntireFile(NullTerminate(*FileName));
+#elif OSX
+	return OSXReadEntireFile(NullTerminate(*FileName));
+#endif
+}
+
+static read_file_result PlatformReadEntireFileWithAssets(string* FileName,memory_partition *Memory)
 {
 #if WINDOWS
     string* AssetPath = BuildPathToAssets(Memory);

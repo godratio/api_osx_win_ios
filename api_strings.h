@@ -319,10 +319,58 @@ static string* ElementIterator(fixed_element_size_list *Array)
     //return 0;
 }
 
+
+//NOTE(ray): Due to the way we store strings we do not have o(1) random acces to the Strings strings.
+static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory)
+{
+    strings Result = {0};
+    Source = NullTerminate(Source);
+    char* At = Source.String;
+    char* Start  = At;
+	b32 HasLastString = false;
+	while(*At++)
+    {
+		HasLastString = true;
+        if(*At == *Separator)
+        {
+            if(Result.StringCount == 0)
+            {
+                //string* FirstString =
+                Result.Strings = CreateStringFromToPointer(Start, At++, StringMemory);;
+                Result.StringCount++;
+                Start = At;
+				
+            }
+            else
+            {
+				CreateStringFromToPointer(Start, At++, StringMemory);
+                Result.StringCount++;
+                Start = At;
+            }
+			HasLastString = false;
+        }
+    }
+	if (HasLastString)
+	{
+		if (Result.StringCount == 0)
+		{
+			Result.Strings = CreateStringFromToPointer(Start, At, StringMemory);
+		}
+		else 
+		{
+			CreateStringFromToPointer(Start, At, StringMemory);
+		}
+		Result.StringCount++;
+	}
+	
+    return Result;
+}
+
 static string* API_String_Iterator(strings* StringArray)
 {
     Assert(StringArray->StringCount > 0)
-    
+    Assert(StringArray->Strings)
+
     if(StringArray->IteratorIndex > StringArray->StringCount - 1)
     {
         StringArray->IteratorIndex = 0;
@@ -337,41 +385,10 @@ static string* API_String_Iterator(strings* StringArray)
     }
 }
 
-static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory)
-{
-    strings Result = {0};
-    Source = NullTerminate(Source);
-    char* At = Source.String;
-    char* Start  = At;
-    
-    while(*At++)
-    {
-        if(*At == *Separator)
-        {
-            if(Result.StringCount == 0)
-            {
-                //string* FirstString =
-                Result.Strings = CreateStringFromToPointer(Start, At, StringMemory);;
-                Result.StringCount++;
-                Start = At;
-            }
-            else
-            {
-                string* NextString = CreateStringFromToPointer(Start, At, StringMemory);
-                Result.StringCount++;
-                Start = At;
-            }
-        }
-    }
-    
-    return Result;
-}
 
 //TODO(ray): Old function can do this much better.  REDO THIS!
-//TODO(ray): Its garbage perhaps.
 //TODO(ray): This will fail in the case there is no seperator present in the string.
-//Note(ray): The data type fixed_element... does not make sense.
-//priority level low because it just works right now.
+//Note(ray): The data type fixed_element... does not make sense should rename rework.
 static fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
 {
     

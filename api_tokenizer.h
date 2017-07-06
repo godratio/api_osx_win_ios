@@ -432,8 +432,8 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
                     Tokenizer->At++;
                     continue;
                 }
+				Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
                 Tokenizer->At++;
-                Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
                 return Result;
             }break;
             default:
@@ -495,20 +495,20 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
         //TODO(ray): No identifier for key.
     }
 }
-
+#define MAX_BLOCKS 100
 static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
-    Block->Entries = CreateVector(2, sizeof(cfg_entry));
+    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
 //NOTE(ray):Output will be a vector
 static cfg_data
-ParseConfig(memory_partition Memory, char* TextString)
+ParseConfig(memory_partition *Memory, char* TextString)
 {
 	cfg_data Data;
 	u32 MemSize = 30;
@@ -523,19 +523,17 @@ ParseConfig(memory_partition Memory, char* TextString)
     
     for (;;)
     {
-        token Token = GetCFGToken(&Tokenizer,&Memory);
+        token Token = GetCFGToken(&Tokenizer, Memory);
         if(Token.Type == Token_Dash)
         {
-            ParseConfigBlock(&Data,&Tokenizer,&Memory);
+            ParseConfigBlock(&Data,&Tokenizer, Memory);
         }
         if (Token.Type == Token_EndOfStream)
         {
             break;
         }
     }
-    
     return Data;
-   
 }
 
 
