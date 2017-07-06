@@ -110,6 +110,24 @@ static string* CreateStringFromToChar(char* String,char* End, memory_partition* 
     return Result;
 }
 
+static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End, memory_partition* StringMemory,memory_partition* CharacterMemory)
+{
+	string* Result = (string*)PushSize(StringMemory, sizeof(string));
+
+	char* At = String;
+	void* StartPointer = GetPartitionPointer(*StringMemory);
+	char* StringPtr = 0;//(char*)Memory;
+	while (At != End)
+	{
+		StringPtr = (char*)PushSize(CharacterMemory, 1);
+		*StringPtr = *At;
+		Result->Length++;
+		At++;
+	}
+	Result->String = (char*)StartPointer;
+	return Result;
+}
+
 static string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory, sizeof(string));
@@ -321,13 +339,14 @@ static string* ElementIterator(fixed_element_size_list *Array)
 
 
 //NOTE(ray): Due to the way we store strings we do not have o(1) random acces to the Strings strings.
-static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory)
+static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory,memory_partition* CharacterMemory)
 {
     strings Result = {0};
     Source = NullTerminate(Source);
     char* At = Source.String;
     char* Start  = At;
 	b32 HasLastString = false;
+	string* StringStart;
 	while(*At++)
     {
 		HasLastString = true;
@@ -336,15 +355,18 @@ static strings API_String_Split(string Source,char* Separator,memory_partition* 
             if(Result.StringCount == 0)
             {
                 //string* FirstString =
-                Result.Strings = CreateStringFromToPointer(Start, At++, StringMemory);;
-                Result.StringCount++;
+                Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, StringMemory,CharacterMemory);;
+				StringStart = Result.Strings;
+				Result.StringCount++;
+				Result.Strings += sizeof(string);
                 Start = At;
 				
             }
             else
             {
-				CreateStringFromToPointer(Start, At++, StringMemory);
+				Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, StringMemory,CharacterMemory);
                 Result.StringCount++;
+				Result.Strings += sizeof(string);
                 Start = At;
             }
 			HasLastString = false;
@@ -354,15 +376,18 @@ static strings API_String_Split(string Source,char* Separator,memory_partition* 
 	{
 		if (Result.StringCount == 0)
 		{
-			Result.Strings = CreateStringFromToPointer(Start, At, StringMemory);
+			
+			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, StringMemory,CharacterMemory);
+			StringStart = Result.Strings;
 		}
 		else 
 		{
-			CreateStringFromToPointer(Start, At, StringMemory);
+			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, StringMemory,CharacterMemory);
 		}
 		Result.StringCount++;
 	}
-	
+	Result.Strings = StringStart;
+
     return Result;
 }
 
