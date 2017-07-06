@@ -3,7 +3,7 @@
 These are used/developed for a game in production.
 The purpose and target for them is similar to the stb libs.
 If your looking for a more complete and well tested set of functionality
-you might want to look <link>here<link> instead.
+you might want to look <link>there<link> instead.
 
 The main difference is here the focus is on using platform specific api's
 to develop platform specific api's that just work and do not allocate memory
@@ -18,7 +18,7 @@ able to do anything about.)
 ## Restrictions placed here
 
 1. Memory allocations are explicit.
-2. Single memor startup and try to maximize allocated memory resuse.
+2. Single memory startup and try to maximize allocated memory resuse.
 ie not calling memory allocation functions as little as possible.
 3. Simple as possible.
 4. Single file includes if possible
@@ -26,7 +26,7 @@ ie not calling memory allocation functions as little as possible.
 6. ...
 
 
-Ripped from stb libs.  Same exact reasoning here.
+The following was Ripped from stb libs.  Same exact reasoning here.
 
 #### Why single-file headers?
 
