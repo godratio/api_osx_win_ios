@@ -99,6 +99,12 @@ struct memory_partition
     u32 TempCount;
 };
 
+struct duel_memory_partition
+{
+    memory_partition *FixedSized;
+    memory_partition *VariableSized;
+};
+
 struct temp_memory
 {
     memory_partition *Partition;

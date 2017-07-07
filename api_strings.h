@@ -11,13 +11,13 @@ api_strings  - public domain string handling -
   
   */
 
+#if !defined(API_STRINGS_H)
+#define MAX_FILENAME_LENGTH 50
+#define MAX_FILE_EXTENSION_LENGTH 3
+
 #include <stdint.h>
 #include <stdio.h>
 #include "api_memory.h"
-
-#if !defined(API_STRINGS)
-#define MAX_FILENAME_LENGTH 50
-#define MAX_FILE_EXTENSION_LENGTH 3
 
 struct string
 {
@@ -37,7 +37,6 @@ struct strings
 {
     string* Strings;
     u32 StringCount;
-    u32 StringIteratorPointer;
     u32 IteratorIndex;
 };
 
@@ -110,16 +109,16 @@ static string* CreateStringFromToChar(char* String,char* End, memory_partition* 
     return Result;
 }
 
-static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End, memory_partition* StringMemory,memory_partition* CharacterMemory)
+static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
-	string* Result = (string*)PushSize(StringMemory, sizeof(string));
+	string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
 
 	char* At = String;
-	void* StartPointer = GetPartitionPointer(*StringMemory);
+	void* StartPointer = GetPartitionPointer(*Memory->VariableSized);
 	char* StringPtr = 0;//(char*)Memory;
 	while (At != End)
 	{
-		StringPtr = (char*)PushSize(CharacterMemory, 1);
+		StringPtr = (char*)PushSize(Memory->VariableSized, 1);
 		*StringPtr = *At;
 		Result->Length++;
 		At++;
@@ -336,58 +335,76 @@ static string* ElementIterator(fixed_element_size_list *Array)
     }
     //return 0;
 }
-
-
+#include "api_tokenizer.h"
 //NOTE(ray): Due to the way we store strings we do not have o(1) random acces to the Strings strings.
-static strings API_String_Split(string Source,char* Separator,memory_partition* StringMemory,memory_partition* CharacterMemory)
+static strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
 {
     strings Result = {0};
     Source = NullTerminate(Source);
     char* At = Source.String;
     char* Start  = At;
 	b32 HasLastString = false;
-	string* StringStart;
-	while(*At++)
+    string* StringStart;
+    u32 CharIndex = 0;
+	while(*At++ && Source.Length > CharIndex)
     {
 		HasLastString = true;
         if(*At == *Separator)
         {
+            while(IsWhiteSpace(*Start))
+            {
+                Start++;
+            }
+            u32 MovedBackCount = 0;
+            while(IsWhiteSpace(*(At - 1)))
+            {
+                MovedBackCount++;
+                At--;
+            }
             if(Result.StringCount == 0)
             {
                 //string* FirstString =
-                Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, StringMemory,CharacterMemory);;
-				StringStart = Result.Strings;
-				Result.StringCount++;
-				Result.Strings += sizeof(string);
-                Start = At;
-				
+                Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);;
             }
             else
             {
-				Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, StringMemory,CharacterMemory);
-                Result.StringCount++;
-				Result.Strings += sizeof(string);
-                Start = At;
+                
+				string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
+                
+                int a = 0;
             }
+            Result.StringCount++;
+            At = At + MovedBackCount;
+            Start = At;
 			HasLastString = false;
         }
+        CharIndex++;
     }
 	if (HasLastString)
 	{
+        while(IsWhiteSpace(*Start))
+        {
+            Start++;
+        }
+        u32 MovedBackCount = 0;
+        while(IsWhiteSpace(*(At - 1)))
+        {
+            MovedBackCount++;
+            At--;
+        }
 		if (Result.StringCount == 0)
 		{
 			
-			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, StringMemory,CharacterMemory);
+			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
 			StringStart = Result.Strings;
 		}
 		else 
 		{
-			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, StringMemory,CharacterMemory);
+			string* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+            int a = 0;
 		}
 		Result.StringCount++;
 	}
-	Result.Strings = StringStart;
-
     return Result;
 }
 
@@ -399,12 +416,10 @@ static string* API_String_Iterator(strings* StringArray)
     if(StringArray->IteratorIndex > StringArray->StringCount - 1)
     {
         StringArray->IteratorIndex = 0;
-        StringArray->StringIteratorPointer = 0;
         return 0;
     }
     else{
-        string* Result = (string*)((u8*)StringArray->Strings  + StringArray->StringIteratorPointer);
-        StringArray->StringIteratorPointer += sizeof(string) + Result->Length;
+        string* Result = StringArray->Strings + StringArray->IteratorIndex;
         StringArray->IteratorIndex++;
         return Result;
     }
@@ -508,7 +523,7 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
     return Result;
 }
 
-#define API_STRINGS
+#define API_STRINGS_H
 #endif
 
 /*
