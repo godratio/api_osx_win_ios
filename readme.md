@@ -13,7 +13,12 @@ able to do anything about.)
 ## Negatives
 1. Still using some std libs.
 2. Not tested throughouly.
-3. ...
+3. api not stable.
+4. Way to integrate into projects not decided.
+5. Have not yet allowed to take in raw buffers for full c compatibility and easier integration into any projects.
+    5a. In other words have to use the data types provided at the moment.
+
+Most of these will evenutally be fixed any help is appreciated.
 
 ## Restrictions placed here
 
