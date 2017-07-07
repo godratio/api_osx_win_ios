@@ -66,6 +66,14 @@ static void* GetPartitionPointer(memory_partition Partition)
     return Result;
 }
 
+static string NullTerminate(string Source)
+{
+	char* NullTerminatePoint = Source.String + Source.Length;
+	*NullTerminatePoint = '\0';
+	Source.NullTerminated = true;
+	return Source;
+}
+
 //TODO(ray):Make a way to reclaim the memory from literals created here.
 static string* CreateStringFromLiteral(char* String,memory_partition* Memory)
 {
@@ -123,7 +131,10 @@ static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* En
 		Result->Length++;
 		At++;
 	}
+	//One more for a possible null char.
+	(char*)PushSize(Memory->VariableSized, 1);
 	Result->String = (char*)StartPointer;
+	//*Result = NullTerminate(*Result);
 	return Result;
 }
 
@@ -164,13 +175,7 @@ static string* CreateStringFromLength(char* String,u32 Length,memory_partition* 
     return Result;
 }
 
-static string NullTerminate(string Source)
-{
-    char* NullTerminatePoint = Source.String + Source.Length;
-    *NullTerminatePoint = '\0';
-    Source.NullTerminated = true;
-    return Source;
-}
+
 
 static int Compare(string A, string B)
 {
@@ -336,7 +341,13 @@ static string* ElementIterator(fixed_element_size_list *Array)
     //return 0;
 }
 #include "api_tokenizer.h"
-//NOTE(ray): Due to the way we store strings we do not have o(1) random acces to the Strings strings.
+
+static string* GetFromStringsByIndex(strings Strings, u32 Index)
+{
+	Assert(Strings.StringCount > Index)
+		return (Strings.Strings + Index);
+}
+
 static strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
 {
     strings Result = {0};
@@ -363,14 +374,11 @@ static strings API_String_Split(string Source,char* Separator,duel_memory_partit
             }
             if(Result.StringCount == 0)
             {
-                //string* FirstString =
                 Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);;
             }
             else
             {
-                
 				string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
-                
                 int a = 0;
             }
             Result.StringCount++;
