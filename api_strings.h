@@ -12,8 +12,34 @@ api_strings  - public domain string handling -
   */
 
 #if !defined(API_STRINGS_H)
+
+#ifdef API_STRING_STATIC
+#define APIDEF static
+#else
+#ifdef __cplusplus
+#define APIDEF extern "C"
+#else
+#define APIDEF extern
+#endif
+#endif
+
+
+#ifndef _MSC_VER
+#ifdef __cplusplus
+#define api__inline inline
+#else
+#define api__inline
+#endif
+#else
+#define api__inline __forceinline
+#endif
+
+
+
 #define MAX_FILENAME_LENGTH 50
 #define MAX_FILE_EXTENSION_LENGTH 10
+
+
 
 #include <stdint.h>
 #include <stdio.h>
@@ -49,7 +75,7 @@ struct fixed_element_size_list
     
 };
 
-inline b32 IsDigit(char Char)
+api__inline b32 IsDigit(char Char)
 {
     if ((Char == ' ' || Char == '.' ||
          Char > '9' || Char < '0'))
@@ -59,14 +85,14 @@ inline b32 IsDigit(char Char)
     return true;
 }
 
-static void* GetPartitionPointer(memory_partition Partition)
+APIDEF void* GetPartitionPointer(memory_partition Partition)
 {
     void* Result;
     Result = (uint8_t*)Partition.Base + Partition.Used;
     return Result;
 }
 
-static string NullTerminate(string Source)
+APIDEF string NullTerminate(string Source)
 {
 	char* NullTerminatePoint = Source.String + Source.Length;
 	*NullTerminatePoint = '\0';
@@ -75,7 +101,7 @@ static string NullTerminate(string Source)
 }
 
 //TODO(ray):Make a way to reclaim the memory from literals created here.
-static string* CreateStringFromLiteral(char* String,memory_partition* Memory)
+APIDEF string* CreateStringFromLiteral(char* String,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
     
@@ -93,13 +119,13 @@ static string* CreateStringFromLiteral(char* String,memory_partition* Memory)
     return Result;
 }
 
-static string* AllocatEmptyString(memory_partition* Partition)
+APIDEF string* AllocatEmptyString(memory_partition* Partition)
 {
     Assert(Partition);
     return CreateStringFromLiteral("",Partition);
 }
 
-static string* CreateStringFromToChar(char* String,char* End, memory_partition* Memory)
+APIDEF string* CreateStringFromToChar(char* String,char* End, memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory, sizeof(string));
     
@@ -117,7 +143,7 @@ static string* CreateStringFromToChar(char* String,char* End, memory_partition* 
     return Result;
 }
 
-static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
+APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
 	string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
 
@@ -138,7 +164,7 @@ static string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* En
 	return Result;
 }
 
-static string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
+APIDEF string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory, sizeof(string));
     
@@ -155,7 +181,7 @@ static string* CreateStringFromToPointer(char* String, char* End, memory_partiti
     Result->String = (char*)StartPointer;
     return Result;
 }
-static string* CreateStringFromLength(char* String,u32 Length,memory_partition* Memory)
+APIDEF string* CreateStringFromLength(char* String,u32 Length,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
     
@@ -177,7 +203,7 @@ static string* CreateStringFromLength(char* String,u32 Length,memory_partition* 
 
 
 
-static int Compare(string A, string B)
+APIDEF int Compare(string A, string B)
 {
     if (A.NullTerminated && B.NullTerminated)
     {
@@ -209,7 +235,7 @@ static int Compare(string A, string B)
 }
 
 //TODO(ray): Make sure this is never used in game.
-static void PrintStringToConsole(string String)
+APIDEF void PrintStringToConsole(string String)
 {
     //for(u32 CharIndex = 0;CharIndex < String.Length;++CharIndex)
     {
@@ -219,7 +245,7 @@ static void PrintStringToConsole(string String)
     }
 }
 
-static string* GetExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem,b32 KeepFileExtensionDelimiter = false)
+APIDEF string* GetExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem,b32 KeepFileExtensionDelimiter = false)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -244,7 +270,7 @@ static string* GetExtension(string* FileNameOrPathWithExtension,memory_partition
     string* ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
     return ExtensionName;
 }
-static string* StripExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem)
+APIDEF string* StripExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -263,7 +289,7 @@ static string* StripExtension(string* FileNameOrPathWithExtension,memory_partiti
     return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
 }
 
-static string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,memory_partition *StringMem,b32 KeepFileExtensionDelimeter = false)
+APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,memory_partition *StringMem,b32 KeepFileExtensionDelimeter = false)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -274,7 +300,7 @@ static string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
     return Result;
 }
 
-static u32 CalculateStringLength(string* String)
+APIDEF u32 CalculateStringLength(string* String)
 {
     u32 Length = 0;
     char* At = String->String;
@@ -287,7 +313,7 @@ static u32 CalculateStringLength(string* String)
     return Length;
 }
 
-static string* AppendString(string Front,string Back,memory_partition* Memory)
+APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
 {
     string *Result = PushStruct(Memory,string);
     void* StartPointer = GetPartitionPointer(*Memory);
@@ -316,7 +342,7 @@ static string* AppendString(string Front,string Back,memory_partition* Memory)
     return Result;
 }
 
-static string* ElementIterator(fixed_element_size_list *Array)
+APIDEF string* ElementIterator(fixed_element_size_list *Array)
 {
     string* Result;
     
@@ -342,13 +368,13 @@ static string* ElementIterator(fixed_element_size_list *Array)
 }
 #include "api_tokenizer.h"
 
-static string* GetFromStringsByIndex(strings Strings, u32 Index)
+APIDEF string* GetFromStringsByIndex(strings Strings, u32 Index)
 {
 	Assert(Strings.StringCount > Index)
 		return (Strings.Strings + Index);
 }
 
-static strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
+APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
 {
     strings Result = {0};
     Source = NullTerminate(Source);
@@ -416,7 +442,7 @@ static strings API_String_Split(string Source,char* Separator,duel_memory_partit
     return Result;
 }
 
-static string* API_String_Iterator(strings* StringArray)
+APIDEF string* API_String_Iterator(strings* StringArray)
 {
     Assert(StringArray->StringCount > 0)
     Assert(StringArray->Strings)
@@ -437,7 +463,7 @@ static string* API_String_Iterator(strings* StringArray)
 //TODO(ray): Old function can do this much better.  REDO THIS!
 //TODO(ray): This will fail in the case there is no seperator present in the string.
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
-static fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
+APIDEF fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
 {
     
     fixed_element_size_list Result = {0};
@@ -529,6 +555,27 @@ static fixed_element_size_list SplitString(string Source,char* Separator,memory_
     }
     Result.Head = Result.Sentinal;
     return Result;
+}
+
+//TODO(ray): Move this to a more proper place replace std::out
+APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
+{
+    if (UseToggle)
+    {
+        va_list List;
+        va_start(List, __Dummy);
+        
+        char TextBuffer[100];
+#if WINDOWS
+        vsprintf_s(TextBuffer,
+                   FormatString, List);
+#elif OSX
+        //NOTE(ray):Untested.....
+        vsprintf(TextBuffer, FormatString, List);
+#endif
+        std::cout << TextBuffer << std::endl;
+        va_end(List);
+    }
 }
 
 #define API_STRINGS_H
