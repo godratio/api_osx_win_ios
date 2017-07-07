@@ -13,7 +13,7 @@ api_strings  - public domain string handling -
 
 #if !defined(API_STRINGS_H)
 #define MAX_FILENAME_LENGTH 50
-#define MAX_FILE_EXTENSION_LENGTH 3
+#define MAX_FILE_EXTENSION_LENGTH 10
 
 #include <stdint.h>
 #include <stdio.h>
