@@ -94,10 +94,10 @@ APIDEF void* GetPartitionPointer(memory_partition Partition)
 
 APIDEF string NullTerminate(string Source)
 {
-	char* NullTerminatePoint = Source.String + Source.Length;
-	*NullTerminatePoint = '\0';
-	Source.NullTerminated = true;
-	return Source;
+    char* NullTerminatePoint = Source.String + Source.Length;
+    *NullTerminatePoint = '\0';
+    Source.NullTerminated = true;
+    return Source;
 }
 
 //TODO(ray):Make a way to reclaim the memory from literals created here.
@@ -145,23 +145,23 @@ APIDEF string* CreateStringFromToChar(char* String,char* End, memory_partition* 
 
 APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
-	string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
-
-	char* At = String;
-	void* StartPointer = GetPartitionPointer(*Memory->VariableSized);
-	char* StringPtr = 0;//(char*)Memory;
-	while (At != End)
-	{
-		StringPtr = (char*)PushSize(Memory->VariableSized, 1);
-		*StringPtr = *At;
-		Result->Length++;
-		At++;
-	}
-	//One more for a possible null char.
-	(char*)PushSize(Memory->VariableSized, 1);
-	Result->String = (char*)StartPointer;
-	//*Result = NullTerminate(*Result);
-	return Result;
+    string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
+    
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory->VariableSized);
+    char* StringPtr = 0;//(char*)Memory;
+    while (At != End)
+    {
+        StringPtr = (char*)PushSize(Memory->VariableSized, 1);
+        *StringPtr = *At;
+        Result->Length++;
+        At++;
+    }
+    //One more for a possible null char.
+    (char*)PushSize(Memory->VariableSized, 1);
+    Result->String = (char*)StartPointer;
+    //*Result = NullTerminate(*Result);
+    return Result;
 }
 
 APIDEF string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
@@ -200,8 +200,6 @@ APIDEF string* CreateStringFromLength(char* String,u32 Length,memory_partition* 
     Result->String = (char*)StartPointer;
     return Result;
 }
-
-
 
 APIDEF int Compare(string A, string B)
 {
@@ -370,8 +368,8 @@ APIDEF string* ElementIterator(fixed_element_size_list *Array)
 
 APIDEF string* GetFromStringsByIndex(strings Strings, u32 Index)
 {
-	Assert(Strings.StringCount > Index)
-		return (Strings.Strings + Index);
+    Assert(Strings.StringCount > Index)
+        return (Strings.Strings + Index);
 }
 
 APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
@@ -380,12 +378,12 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
     Source = NullTerminate(Source);
     char* At = Source.String;
     char* Start  = At;
-	b32 HasLastString = false;
+    b32 HasLastString = false;
     string* StringStart;
     u32 CharIndex = 0;
-	while(*At++ && Source.Length > CharIndex)
+    while(*At++ && Source.Length > CharIndex)
     {
-		HasLastString = true;
+        HasLastString = true;
         if(*At == *Separator)
         {
             while(IsWhiteSpace(*Start))
@@ -404,18 +402,18 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
             }
             else
             {
-				string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
+                string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
                 int a = 0;
             }
             Result.StringCount++;
             At = At + MovedBackCount;
             Start = At;
-			HasLastString = false;
+            HasLastString = false;
         }
         CharIndex++;
     }
-	if (HasLastString)
-	{
+    if (HasLastString)
+    {
         while(IsWhiteSpace(*Start))
         {
             Start++;
@@ -426,28 +424,28 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
             MovedBackCount++;
             At--;
         }
-		if (Result.StringCount == 0)
-		{
-			
-			Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
-			StringStart = Result.Strings;
-		}
-		else 
-		{
-			string* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+        if (Result.StringCount == 0)
+        {
+            
+            Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+            StringStart = Result.Strings;
+        }
+        else 
+        {
+            string* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
             int a = 0;
-		}
-		Result.StringCount++;
-	}
+        }
+        Result.StringCount++;
+    }
     return Result;
 }
 
 APIDEF string* API_String_Iterator(strings* StringArray)
 {
     Assert(StringArray->StringCount > 0)
-    Assert(StringArray->Strings)
-
-    if(StringArray->IteratorIndex > StringArray->StringCount - 1)
+        Assert(StringArray->Strings)
+    
+        if(StringArray->IteratorIndex > StringArray->StringCount - 1)
     {
         StringArray->IteratorIndex = 0;
         return 0;
@@ -569,11 +567,13 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
 #if WINDOWS
         vsprintf_s(TextBuffer,
                    FormatString, List);
+        OutputDebugStringA(TextBuffer);
 #elif OSX
         //NOTE(ray):Untested.....
         vsprintf(TextBuffer, FormatString, List);
-#endif
         std::cout << TextBuffer << std::endl;
+#endif
+        
         va_end(List);
     }
 }
