@@ -5,7 +5,6 @@ email : raygarner13@gmail.com
 api_vector  - public domain  emory allocing and deallocing - 
                                      no warranty implied; use at your own risk
                                      
-                                     
                                      LICENSE
   See end of file for license information.
   
@@ -79,8 +78,6 @@ struct partition_push_params
     u32 Flags;
     u32 Alignment;
 };
-
-
 
 inline partition_push_params
 DefaultPartitionParams(void)
