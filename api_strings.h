@@ -5,7 +5,6 @@ email : raygarner13@gmail.com
 api_strings  - public domain string handling - 
                                      no warranty implied; use at your own risk
                                      
-                                     
                                      LICENSE
   See end of file for license information.
   
@@ -23,7 +22,6 @@ api_strings  - public domain string handling -
 #endif
 #endif
 
-
 #ifndef _MSC_VER
 #ifdef __cplusplus
 #define api__inline inline
@@ -34,12 +32,8 @@ api_strings  - public domain string handling -
 #define api__inline __forceinline
 #endif
 
-
-
 #define MAX_FILENAME_LENGTH 50
 #define MAX_FILE_EXTENSION_LENGTH 10
-
-
 
 #include <stdint.h>
 #include <stdio.h>
@@ -83,13 +77,6 @@ api__inline b32 IsDigit(char Char)
         return false;
     }
     return true;
-}
-
-APIDEF void* GetPartitionPointer(memory_partition Partition)
-{
-    void* Result;
-    Result = (uint8_t*)Partition.Base + Partition.Used;
-    return Result;
 }
 
 APIDEF string NullTerminate(string Source)

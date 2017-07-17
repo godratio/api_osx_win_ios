@@ -108,6 +108,14 @@ struct temp_memory
     u32 Used;
 };
 
+static void* 
+GetPartitionPointer(memory_partition Partition)
+{
+    void* Result;
+    Result = (uint8_t*)Partition.Base + Partition.Used;
+    return Result;
+}
+
 inline void*
 PlatformAllocateMemory(memory_index Size)
 {

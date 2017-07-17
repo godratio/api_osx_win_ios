@@ -32,6 +32,7 @@ struct vector
     memory_partition* Partition;
     u32 Pushable;
 };
+
 //TODO(ray):Add memory alignment options here
 static vector CreateVector(u32 StartSize,u32 UnitSize)
 {
@@ -49,9 +50,7 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
     Result.StartAt = -1;
     Result.Pushable = true;
     //TODO(ray): change this to get memory froma a pre allocated partition.
-    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);//VirtualAlloc(0, Result.TotalSize,
-    //           MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE); //malloc(Result.TotalSize);
-    memory_partition* Partition = (memory_partition*)StartingMemory;
+    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);memory_partition* Partition = (memory_partition*)StartingMemory;
     AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(memory_partition*));
     Result.Partition = Partition;
     Result.Base = Partition->Base;
