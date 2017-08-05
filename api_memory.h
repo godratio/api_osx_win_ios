@@ -36,6 +36,33 @@ static void OSXDeAllocateMemory(void* Memory,s64 Size)
 
 #endif
 
+#if IOS
+#include <mach/mach_init.h>
+//#include <mach/mach_vm.h>
+
+static void*
+IOSAllocateMemory(memory_index Size)
+{
+    mach_vm_address_t address;
+    kern_return_t kr;
+    mach_vm_size_t size = (mach_vm_size_t)Size;
+    
+    kr = _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
+    //TODO(ray):Make sure this actually casts properly.
+    return (void*)address;
+}
+
+static void 
+IOSDeAllocateMemory(void* Memory,s64 Size)
+{
+    mach_vm_address_t Address = (mach_vm_address_t)Memory;
+    //mach_vm_size_t MachSize = (mach_vm_size_t)Size;
+    //vm_deallocate(mach_task_self(), Address, Size);
+    _kernelrpc_mach_vm_deallocate_trap(mach_task_self(), Address, Size);
+}
+
+#endif
+
 #if WINDOWS
 #include <windows.h>
 
@@ -119,21 +146,27 @@ GetPartitionPointer(memory_partition Partition)
 inline void*
 PlatformAllocateMemory(memory_index Size)
 {
-    
+    void* Result;
 #if OSX
-    return OSXAllocateMemory(Size);
+    Result = OSXAllocateMemory(Size);
 #elif WINDOWS
-    return Win32AllocateMemory(Size);
+    Result = Win32AllocateMemory(Size);
+#elif IOS
+	Result = IOSAllocateMemory(Size);
 #endif
+	return Result;
 }
 
 inline void
 PlatformDeAllocateMemory(void* Memory, memory_index Size)
 {
+
 #if OSX
     OSXDeAllocateMemory(Memory, Size);
 #elif WINDOWS
     Win32DeAllocateMemory(Memory,Size);
+#elif
+	IOSDeAllocateMemory(Memory,Size);
 #endif
 }
 
@@ -213,10 +246,23 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-        u8* Byte = (u8*)Partition->Base + Partition->Used;
-    while (Size--)
+    Size--;
+    if(Partition->Used < Size)
     {
-        *Byte++ = 0;
+        Size = Partition->Used;
+    }
+
+    if(Partition->Used == 0)
+    {
+        return;
+    }
+    else
+    {
+        u8* Byte = (u8*)Partition->Base + Partition->Used;
+        while (Size--)
+        {
+            *Byte++ = 0;
+        }
     }
 }
 

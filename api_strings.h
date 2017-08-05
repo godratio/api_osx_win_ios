@@ -91,10 +91,10 @@ APIDEF string NullTerminate(string Source)
 APIDEF string* CreateStringFromLiteral(char* String,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
-    
+    Result->Length = 0;
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr;//(char*)Memory;
+    char* StringPtr;
     while (*At)
     {
         StringPtr = (char*)PushSize(Memory,1);
@@ -324,6 +324,7 @@ APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
         Iterations++;
     }
     Result->String = (char*)StartPointer;
+    *Result = NullTerminate(*Result);
     return Result;
 }
 
