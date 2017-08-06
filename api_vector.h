@@ -58,8 +58,8 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
 }
 
 #define GetVectorElement(Type,Vector,Index) (Type*)GetVectorElement_(Vector,Index)
-#define GetVectorFirst(Type,Vector) (Type)GetVectorElement_(Vector,0)
-#define GetVectorLast(Type,Vector) (Type)GetVectorElement_(Vector,Vector.Count)
+#define GetVectorFirst(Type,Vector) (Type*)GetVectorElement_(Vector,0)
+#define GetVectorLast(Type,Vector) (Type*)GetVectorElement_(Vector,Vector.Count)
 #define PeekVectorElement(Type,Vector) (Type*)GetVectorElement_(Vector,*Vector.Count-1)
 
 static void* GetVectorElement_(vector* Vector, u32 Index)
