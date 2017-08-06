@@ -160,12 +160,12 @@ PlatformAllocateMemory(memory_index Size)
 inline void
 PlatformDeAllocateMemory(void* Memory, memory_index Size)
 {
-
+    
 #if OSX
     OSXDeAllocateMemory(Memory, Size);
 #elif WINDOWS
     Win32DeAllocateMemory(Memory,Size);
-#elif
+#elif IOS
 	IOSDeAllocateMemory(Memory,Size);
 #endif
 }

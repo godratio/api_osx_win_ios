@@ -465,19 +465,19 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,memory
     string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     *FinalPathToAsset = NullTerminate(*FinalPathToAsset);
-    return Win32ReadEntireFile(*FinalPathToAsset);
+    Result = Win32ReadEntireFile(*FinalPathToAsset);
     
 #elif OSX
     string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
-    Result OSXReadEntireFile(*FinalPathToAsset);
+    Result = OSXReadEntireFile(*FinalPathToAsset);
     
 #elif IOS
     string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*FileName,Memory);
     NullTerminate(*FinalPathToAsset);
-    Result OSXReadEntireFile(*FinalPathToAsset);
+    Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
     return Result;
 }
