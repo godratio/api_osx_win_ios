@@ -543,6 +543,22 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,memory_
     return Result;
 }
 
+#define MAX_FORMAT_STRING_SIZE 500
+APIDEF string* FormatToString(char* StringBuffer,memory_partition* StringMemory)
+{
+    string* Result;
+    char CharBuffer[MAX_FORMAT_STRING_SIZE];
+#if OSX
+    sprintf(CharBuffer, StringBuffer);
+#elif IOS
+    sprintf(CharBuffer, StringBuffer);
+#elif WINDOWS
+    sprintf_s(CharBuffer,StringBuffer);
+#endif
+    Result = CreateStringFromLiteral(CharBuffer,StringMemory);
+    return Result;
+}
+
 //TODO(ray): Move this to a more proper place replace std::out
 APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
 {
