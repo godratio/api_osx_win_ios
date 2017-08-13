@@ -152,9 +152,9 @@ PlatformAllocateMemory(memory_index Size)
 #elif WINDOWS
     Result = Win32AllocateMemory(Size);
 #elif IOS
-	Result = IOSAllocateMemory(Size);
+    Result = IOSAllocateMemory(Size);
 #endif
-	return Result;
+    return Result;
 }
 
 inline void
@@ -166,7 +166,7 @@ PlatformDeAllocateMemory(void* Memory, memory_index Size)
 #elif WINDOWS
     Win32DeAllocateMemory(Memory,Size);
 #elif IOS
-	IOSDeAllocateMemory(Memory,Size);
+    IOSDeAllocateMemory(Memory,Size);
 #endif
 }
 
@@ -246,12 +246,12 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-    Size--;
+        Size--;
     if(Partition->Used < Size)
     {
         Size = Partition->Used;
     }
-
+    
     if(Partition->Used == 0)
     {
         return;
@@ -265,7 +265,8 @@ static void ClearSize(memory_partition *Partition,u32 Size)
         }
     }
 }
-
+#define ZeroStruct(Instance) ClearToZero(&(Instance),sizeof(Instance))
+#define ZeroArray(Count, Pointer) ClearToZero(Pointer,Count*sizeof((Pointer)[0]))
 static void ClearToZero(void* Mem,u32 Size)
 {
     Assert(Size > 0)
@@ -294,6 +295,36 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
     Partition->Used = Partition->Used + Size;
     
     return Result;
+}
+
+inline partition_push_params
+NoClear(void)
+{
+    partition_push_params Params = DefaultPartitionParams();
+    Params.Flags &= ~PartitionFlag_ClearToZero;
+    return(Params);
+}
+
+inline char *
+PushCharString(memory_partition *Partition, char *CharString)
+{
+    u32 Size = 1;
+    for(char *At = CharString;
+        *At;
+        ++At)
+    {
+        ++Size;
+    }
+    
+    char *Dest = (char *)PushSize_(Partition, Size, NoClear());
+    for(u32 CharIndex = 0;
+        CharIndex < Size;
+        ++CharIndex)
+    {
+        Dest[CharIndex] = CharString[CharIndex];
+    }
+    
+    return(Dest);
 }
 
 

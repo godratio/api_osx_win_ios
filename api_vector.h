@@ -50,7 +50,8 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
     Result.StartAt = -1;
     Result.Pushable = true;
     //TODO(ray): change this to get memory froma a pre allocated partition.
-    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);memory_partition* Partition = (memory_partition*)StartingMemory;
+    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);
+    memory_partition* Partition = (memory_partition*)StartingMemory;
     AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(memory_partition*));
     Result.Partition = Partition;
     Result.Base = Partition->Base;
@@ -106,7 +107,7 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex,void* Element,b32
 }
 
 //NOTE(ray):If you use SetVectorElement Pushes will no longer work properly.
-static void PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
+static u32 PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
 {
     //TIMED_BLOCK();
     Assert(Vector && Element);
@@ -128,7 +129,8 @@ static void PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
         Ptr = (uint8_t*)Element;
     }
     Vector->TotalSize += Vector->UnitSize;
-    Vector->Count++;
+    u32 ResultIndex = Vector->Count++;
+    return ResultIndex;
 }
 
 #define PushEmptyVectorElement(Vector) PushEmptyVectorElement_(Vector)

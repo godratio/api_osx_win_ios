@@ -219,6 +219,24 @@ APIDEF int Compare(string A, string B)
     return true;
 }
 
+APIDEF b32 CompareChars(char *A, char *B)
+{
+    b32 Result = (A == B);
+    
+    if(A && B)
+    {
+        while(*A && *B && (*A == *B))
+        {
+            ++A;
+            ++B;
+        }
+        
+        Result = ((*A == 0) && (*B == 0));
+    }
+    
+    return(Result);
+}
+
 //TODO(ray): Make sure this is never used in game.
 APIDEF void PrintStringToConsole(string String)
 {
@@ -295,6 +313,18 @@ APIDEF u32 CalculateStringLength(string* String)
         At++;
     }
     String->Length = Length;
+    return Length;
+}
+
+APIDEF u32 CalculateCharLength(char* String)
+{
+    u32 Length = 0;
+    char* At = String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
     return Length;
 }
 
@@ -564,6 +594,29 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
         
         va_end(List);
     }
+}
+
+///#define //PlatformFormatString(Partition,FormatString,...) PlatformFormatString_(Partition,FormatString,0)
+internal string* PlatformFormatString_(memory_partition* Partition,const char* FormatString, u32 __Dummy, ...)
+{
+    
+    string* Result;
+    va_list List;
+    va_start(List, __Dummy);
+    char TextBuffer[100];
+#if OSX
+    vsprintf(TextBuffer,
+             FormatString,List);
+#elif WINDOWS
+    vsprintf_s(TextBuffer,
+               FormatString,List);
+#elif IOS
+    vsprintf(TextBuffer,
+             FormatString,List);
+#endif
+    Result = CreateStringFromLiteral(TextBuffer,Partition);
+    va_end(List);
+    return Result;
 }
 
 #define API_STRINGS_H
