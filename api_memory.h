@@ -11,7 +11,7 @@ api_vector  - public domain  emory allocing and deallocing -
   */
 
 #if !defined(API_MEMORY_H)
-
+#include "types.h"
 #if OSX
 #include <mach/mach_init.h>
 #include <mach/mach_vm.h>
@@ -152,9 +152,9 @@ PlatformAllocateMemory(memory_index Size)
 #elif WINDOWS
     Result = Win32AllocateMemory(Size);
 #elif IOS
-	Result = IOSAllocateMemory(Size);
+    Result = IOSAllocateMemory(Size);
 #endif
-	return Result;
+    return Result;
 }
 
 inline void
@@ -166,7 +166,7 @@ PlatformDeAllocateMemory(void* Memory, memory_index Size)
 #elif WINDOWS
     Win32DeAllocateMemory(Memory,Size);
 #elif IOS
-	IOSDeAllocateMemory(Memory,Size);
+    IOSDeAllocateMemory(Memory,Size);
 #endif
 }
 
@@ -246,12 +246,12 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-    Size--;
+        Size--;
     if(Partition->Used < Size)
     {
         Size = Partition->Used;
     }
-
+    
     if(Partition->Used == 0)
     {
         return;

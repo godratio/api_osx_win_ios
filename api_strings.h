@@ -79,6 +79,66 @@ api__inline b32 IsDigit(char Char)
     return true;
 }
 
+//NOTE(ray):Assumes string is already null terminated.
+APIDEF u32 String_GetLength_String(string* String)
+{
+    u32 Length = 0;
+    char* At = String->String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
+    String->Length = Length;
+    return Length;
+}
+
+APIDEF u32 String_GetLengthSafely_String(string* String,u32 SafetyLength)
+{
+    u32 Length = 0;
+    char* At = String->String;
+    while(*At)
+    {
+        Length++;
+        At++;
+        if(Length > SafetyLength)
+        {
+            break;
+        }
+    }
+    String->Length = Length;
+    return Length;
+}
+
+//NOTE(ray):Assumes string is already null terminated.
+APIDEF u32 String_GetLength_Char(char* String)
+{
+    u32 Length = 0;
+    char* At = String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
+    return Length;
+}
+
+APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength)
+{
+    u32 Length = 0;
+    char* At = String;
+    while(*At)
+    {
+        Length++;
+        At++;
+        if(Length > SafetyLength)
+        {
+            break;
+        }
+    }
+    return Length;
+}
+
 APIDEF string NullTerminate(string Source)
 {
     char* NullTerminatePoint = Source.String + Source.Length;
@@ -103,6 +163,29 @@ APIDEF string* CreateStringFromLiteral(char* String,memory_partition* Memory)
         At++;
     }
     Result->String = (char*)StartPointer;
+    return Result;
+}
+
+//TODO(Ray):Make a way to reclaim the memory from literals created here.
+//TODO(Ray):Allow to have the option to do the length check safely.
+//NOTE(Ray):This function requires you free your own memory once your done.
+APIDEF string* String_Allocate(char* String)
+{
+    u32 Length = String_GetLength_Char(String);
+    void* Mem = PlatformAllocateMemory(Length);
+    string* Result = (string*)Mem;
+    Result->Length = 0;
+    char* At = String;
+    void* StartPointer = Mem;
+    char* StringPtr = (char*)Mem;
+    while (*At)
+    {
+        *StringPtr++ = *At;
+        Result->Length++;
+        At++;
+    }
+    Result->String = (char*)StartPointer;
+    Result->Length = Length;
     return Result;
 }
 
@@ -283,19 +366,6 @@ APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
     //string TerminatedExtensionName = NullTerminate(*ExtensionName);
     *Extension = *ExtensionName;
     return Result;
-}
-
-APIDEF u32 CalculateStringLength(string* String)
-{
-    u32 Length = 0;
-    char* At = String->String;
-    while(*At)
-    {
-        Length++;
-        At++;
-    }
-    String->Length = Length;
-    return Length;
 }
 
 APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
@@ -558,7 +628,7 @@ APIDEF string* FormatToString(char* StringBuffer,memory_partition* StringMemory)
     Result = CreateStringFromLiteral(CharBuffer,StringMemory);
     return Result;
 }
-
+#include <stdarg.h>
 //TODO(ray): Move this to a more proper place replace std::out
 APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
 {
@@ -571,7 +641,8 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
 #if WINDOWS
         vsprintf_s(TextBuffer,
                    FormatString, List);
-        OutputDebugStringA(TextBuffer);
+      std::cout << TextBuffer << std::endl;
+//        OutputDebugStringA(TextBuffer);
 #elif OSX
         //NOTE(ray):Untested.....
         vsprintf(TextBuffer, FormatString, List);

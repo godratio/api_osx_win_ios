@@ -300,7 +300,7 @@ IOSReadEntireFile(string Path)
 
 #if WINDOWS
 #include <windows.h>
-#include "api_osx_win/api_memory.h"
+//#include "api_osx_win/api_memory.h"
 
 static string* BuildPathToAssets(memory_partition *Partition)
 {
@@ -445,7 +445,7 @@ Win32ReadEntireFile(string Path)
 
 #endif
 
-static read_file_result PlatformReadEntireFile(string* FileName, memory_partition *Memory)
+static read_file_result PlatformReadEntireFile(string* FileName)
 {
     read_file_result Result;
 #if WINDOWS
