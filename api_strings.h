@@ -460,8 +460,9 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
             }
             else
             {
+                //TODO(Ray):After looking throught his i seen i left there here i think we can
+                //safe remove this.
                 string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
-                int a = 0;
             }
             Result.StringCount++;
             At = At + MovedBackCount;
@@ -491,7 +492,6 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
         else 
         {
             string* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
-            int a = 0;
         }
         Result.StringCount++;
     }
