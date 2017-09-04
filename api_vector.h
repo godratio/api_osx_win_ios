@@ -34,7 +34,7 @@ struct vector
 };
 
 //TODO(ray):Add memory alignment options here
-static vector CreateVector(u32 StartSize,u32 UnitSize)
+static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
 {
     //TIMED_BLOCK();
     Assert(StartSize > 0);
@@ -45,7 +45,8 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
     Result.TotalSize = StartSize * UnitSize;
     Result.UnitSize = UnitSize;
     Result.TotalCount = StartSize;
-    Result.Count = 0;
+    
+    
     Result.AtIndex = 0;
     Result.StartAt = -1;
     Result.Pushable = true;
@@ -53,8 +54,22 @@ static vector CreateVector(u32 StartSize,u32 UnitSize)
     void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);
     memory_partition* Partition = (memory_partition*)StartingMemory;
     AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(memory_partition*));
+    
     Result.Partition = Partition;
+    if(PreEmpt)
+    {
+        Result.Count = StartSize;
+        PushSize_(Partition,Result.TotalSize);
+    }
+    else
+    {
+        Result.Count = 0;
+    }
+    
+    
     Result.Base = Partition->Base;
+    
+    
     return Result;
 }
 
@@ -112,8 +127,17 @@ static u32 PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
     //TIMED_BLOCK();
     Assert(Vector && Element);
     Assert(Vector->Pushable);
+    
     //TODO(ray):have some protection here to make sure we are added in the right type.
     uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
+    if(!Ptr)
+    {
+        u32 NewMemSize = Vector->TotalSize*2;
+        //Get more mem
+        Ptr = (u8*)PlatformAllocateMemory(NewMemSize);
+        memcpy(Vector->Partition->Base,Ptr,NewMemSize);
+        Ptr = Ptr + Vector->TotalSize;
+    }
     if (Copy)
     {
         u32 ByteCount = Vector->UnitSize;

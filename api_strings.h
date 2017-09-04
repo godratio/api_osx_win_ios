@@ -132,20 +132,20 @@ APIDEF string* CreateStringFromToChar(char* String,char* End, memory_partition* 
 
 APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
-    string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
+    string* Result = (string*)PushSize(&Memory->FixedSized, sizeof(string));
     
     char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory->VariableSized);
+    void* StartPointer = GetPartitionPointer(Memory->VariableSized);
     char* StringPtr = 0;//(char*)Memory;
     while (At != End)
     {
-        StringPtr = (char*)PushSize(Memory->VariableSized, 1);
+        StringPtr = (char*)PushSize(&Memory->VariableSized, 1);
         *StringPtr = *At;
         Result->Length++;
         At++;
     }
     //One more for a possible null char.
-    (char*)PushSize(Memory->VariableSized, 1);
+    (char*)PushSize(&Memory->VariableSized, 1);
     Result->String = (char*)StartPointer;
     //*Result = NullTerminate(*Result);
     return Result;
