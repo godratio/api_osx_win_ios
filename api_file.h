@@ -39,6 +39,7 @@ struct file_info
 };
 
 #if OSX
+#include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(memory_partition *Partition)
 {
@@ -54,7 +55,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
     {
         // error
     }
-    CalculateStringLength(CurrentDir);
+    String_GetLength_String(CurrentDir);
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
 }
 
@@ -74,7 +75,7 @@ OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
     
-    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, nullptr);
+    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
     while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess) {
         CFNumberRef valueNum = NULL;
@@ -104,7 +105,7 @@ OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
         ///CFStringAppend(fileName, CFURLGetString(resUrl));
         //CFStringAppend(fileName, cfsName);
         
-        if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, nullptr) && (valueNum != NULL)) {
+        if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL)) {
             //    signed long long int value;
             //    if (CFNumberGetValue(valueNum, kCFNumberLongLongType, &value) && (value >= 0))
             //        totalSize += value;
@@ -204,7 +205,7 @@ IOSGetAllFilesInDir(string Path,memory_partition *StringMem)
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
     
-    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, nullptr);
+    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
     while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess) {
         CFNumberRef valueNum = NULL;

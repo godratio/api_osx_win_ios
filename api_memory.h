@@ -11,7 +11,7 @@ api_vector  - public domain  emory allocing and deallocing -
   */
 
 #if !defined(API_MEMORY_H)
-#include "types.h"
+
 #if OSX
 #include <mach/mach_init.h>
 #include <mach/mach_vm.h>
@@ -192,6 +192,16 @@ static void AllocatePartition(memory_partition *Partition, u32 Size, void* Base)
     Partition->Size = Size;
     Partition->Used = 0;
     Partition->TempCount = 0;
+}
+
+inline memory_partition* PlatformAllocatePartition(memory_index Size)
+{
+    u32 SizeOfMP = sizeof(memory_partition);
+    Assert(Size > SizeOfMP);
+    u8* Mem = (u8*)PlatformAllocateMemory(Size);
+    memory_partition* Header = (memory_partition *)Mem;
+    AllocatePartition(Header,Size - SizeOfMP, Mem + SizeOfMP);
+    return Header;
 }
 
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method

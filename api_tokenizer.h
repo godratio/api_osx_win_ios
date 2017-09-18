@@ -370,12 +370,16 @@ ParseCSV(memory_partition Memory, char* TextString)
 
 struct cfg_entry
 {
+    b32 IsDef;    
 	string Key;
 	string Text;
+    var_type Type;
 };
 
 struct cfg_block
 {
+    b32 IsDef;
+    string Name;
     vector Entries;
 };
 
@@ -415,7 +419,7 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
                if(Tokenizer->At[0] == '-')
                {
                    Result.Type = Token_Dash;
-                   Tokenizer->At = Tokenizer->At + 2;
+                   Tokenizer->At = Tokenizer->At + 1;
                    return Result;
                }
             }break;
@@ -454,8 +458,6 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
                 {
                     Result.Type = Token_Unknown;
                 }
-                
-                
                 return Result;
             }break;
         }
@@ -495,18 +497,32 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
         //TODO(ray): No identifier for key.
     }
 }
+
 #define MAX_BLOCKS 100
-static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
+static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,memory_partition *Memory)
+{
+    string* TaskName = NameToken.Data;
+    
+    cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    Block->Name = *TaskName;
+    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    ParseConfigKeyValues(Block,Tokenizer, Memory);
+    
+}
+
+static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    Block->Name = *TaskName;
+    Block->IsDef = true;
     Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
-//NOTE(ray):Output will be a vector
+
 static cfg_data
 ParseConfig(memory_partition *Memory, char* TextString)
 {
@@ -524,9 +540,19 @@ ParseConfig(memory_partition *Memory, char* TextString)
     for (;;)
     {
         token Token = GetCFGToken(&Tokenizer, Memory);
-        if(Token.Type == Token_Dash)
+        if(RequireToken(Token,Token_Dash))
         {
-            ParseConfigBlock(&Data,&Tokenizer, Memory);
+            token NextToken = GetCFGToken(&Tokenizer,Memory);
+            if(RequireToken(NextToken,Token_Colon))
+            {
+                //Parse def block
+                ParseDefBlock(&Data,&Tokenizer,Memory);
+            }
+            else
+            {
+                ParseConfigBlock(&Data,&Tokenizer,NextToken, Memory);                
+            }
+
         }
         if (Token.Type == Token_EndOfStream)
         {
