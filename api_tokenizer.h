@@ -62,6 +62,11 @@ static b32 IsSingleLineCommentCPPStyle(char* At)
     return (At[0] == '/' && At[1] == '/');
 }
 
+static b32 IsSingleLineCommentLispStyle(char* At)
+{
+    return (At[0] == ';');
+}
+
 static b32 IsMultiLineCommentCStyle(char* At)
 {
     return (At[0] == '/' && At[1] == '*');
@@ -107,7 +112,6 @@ static void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
     {
         if(IsNewLine(*Tokenizer->At))
         {
-            //++Tokenizer->At;
             return;
         }
         else
@@ -468,7 +472,6 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
 {
     token Token = GetCFGToken(Tokenizer,Memory);
     cfg_entry EntryCanidate;
-    
     if(RequireToken(Token, Token_Identifier))
     {
         EntryCanidate.Key = *Token.Data;
@@ -484,7 +487,6 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
             }
             else
             {
-                
             }
         }
         else
@@ -561,7 +563,6 @@ ParseConfig(memory_partition *Memory, char* TextString)
     }
     return Data;
 }
-
 
 static token
 GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
@@ -640,5 +641,83 @@ GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
     }
     return Result;
 }
+
+static token
+GetSeedToken(tokenizer *Tokenizer, memory_partition* Partition)
+{
+    token Result;
+    EatAllWhiteSpace(Tokenizer);
+    //Comment skipped.
+    if(IsSingleLineCommentLispStyle(Tokenizer->At))
+    {
+        ParseSingleLineCommentCPPStyle(Tokenizer);
+    }
+//    if(IsMultiLineCommentCStyle(Tokenizer->At))
+//    {
+//        ParseMultLineCommentCStyle(Tokenizer);
+//    }
+    char AtChar = *Tokenizer->At;
+    ++Tokenizer->At;
+    switch (AtChar)
+    {
+        case '(': {Result.Type = Token_OpenParen; }break;
+        case ')': {Result.Type = Token_CloseParen; }break;
+        case '{': {Result.Type = Token_OpenBrace; }break;
+        case '}': {Result.Type = Token_CloseBrace; }break;
+        case ':': {Result.Type = Token_Colon; }break;
+        case ',': {Result.Type = Token_Comma; }break;
+        case '_': {Result.Type = Token_Underscore; }break;
+/*Note(Ray):We allow dashes in the identiefiers in lispy/seed
+        case '-': 
+        {
+            if(Tokenizer->At[0] == '-')
+            {
+                Result.Type = Token_Dash;
+//                Tokenizer->At = Tokenizer->At + 1;
+                return Result;
+            }
+        }break;
+*/
+        case '\0': {
+            Result.Type = Token_EndOfStream;
+            return Result;
+        }break;
+        case '"':
+        {
+            Result.Type = Token_String;
+            char* Start = Tokenizer->At;
+            while (Tokenizer->At[0] != '"')
+            {
+                Tokenizer->At++;
+                continue;
+            }
+            Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+            Tokenizer->At++;
+            return Result;
+        }break;
+        default:
+        {
+            if(IsAlpha(AtChar))
+            {
+                Result.Type = Token_Identifier;
+                char* Start = Tokenizer->At - 1;
+                while (IsAlpha(*Tokenizer->At) ||
+                       IsNum(*Tokenizer->At))
+                {
+                    Tokenizer->At++;
+                    continue;
+                }
+                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+            }
+            else
+            {
+                Result.Type = Token_Unknown;
+            }
+            return Result;
+        }break;
+    }
+    return Result;
+}
+
 #define API_TOKENIZER_H
 #endif
