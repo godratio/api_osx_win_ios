@@ -697,7 +697,7 @@ GetSeedToken(tokenizer *Tokenizer, memory_partition* Partition)
         }break;
         default:
         {
-            if(IsAlpha(AtChar))
+//            if(IsAlpha(AtChar))
             {
                 Result.Type = Token_Identifier;
                 char* Start = Tokenizer->At - 1;
@@ -709,9 +709,9 @@ GetSeedToken(tokenizer *Tokenizer, memory_partition* Partition)
                 }
                 Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
             }
-            else
+//            else
             {
-                Result.Type = Token_Unknown;
+//                Result.Type = Token_Unknown;
             }
             return Result;
         }break;
