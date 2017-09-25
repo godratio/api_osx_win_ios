@@ -659,7 +659,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
         char TextBuffer[100];
 #if WINDOWS
 
-        vsprintf_s(TextBuffer,
+        vsprintf(TextBuffer,
                    FormatString, List);
         OutputDebugStringA(TextBuffer);
 
