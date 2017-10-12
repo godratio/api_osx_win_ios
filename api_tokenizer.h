@@ -323,7 +323,7 @@ struct csv_data
 
 //NOTE(ray):Output will be a vector
 static csv_data
-ParseCSV(memory_partition Memory, char* TextString)
+ParseCSV(memory_partition Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
     u32 MemSize = 500;
@@ -337,7 +337,7 @@ ParseCSV(memory_partition Memory, char* TextString)
     //token *Token;
     u32 LineNumber = 0;
     csv_line* CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-    CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
+    CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
     token PrevToken;
     while(IsParsing)
     {
@@ -356,7 +356,7 @@ ParseCSV(memory_partition Memory, char* TextString)
             {
                 ++LineNumber;
                 CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-                CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
+                CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
             }
         }
         
@@ -365,7 +365,6 @@ ParseCSV(memory_partition Memory, char* TextString)
             break;
         }
         PrevToken = Token;
-        
     }
     
     FreeVectorMem(&TokenVector);

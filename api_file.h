@@ -416,7 +416,6 @@ Win32ReadEntireFile(string Path)
                     ))
                 {
                     Result.ContentSize = FileSize.QuadPart;
-                    return Result;
                 }
                 else
                 {

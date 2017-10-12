@@ -160,7 +160,6 @@ PlatformAllocateMemory(memory_index Size)
 inline void
 PlatformDeAllocateMemory(void* Memory, memory_index Size)
 {
-    
 #if OSX
     OSXDeAllocateMemory(Memory, Size);
 #elif WINDOWS
@@ -197,7 +196,7 @@ static void AllocatePartition(memory_partition *Partition, u32 Size, void* Base)
 inline memory_partition* PlatformAllocatePartition(memory_index Size)
 {
     u32 SizeOfMP = sizeof(memory_partition);
-    Assert(Size > SizeOfMP);
+    Size += SizeOfMP;
     u8* Mem = (u8*)PlatformAllocateMemory(Size);
     memory_partition* Header = (memory_partition *)Mem;
     AllocatePartition(Header,Size - SizeOfMP, Mem + SizeOfMP);
