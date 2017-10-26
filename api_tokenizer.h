@@ -326,7 +326,7 @@ static csv_data
 ParseCSV(memory_partition Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
-    u32 MemSize = 500;
+    u32 MemSize = 10000;
     Data.Lines = CreateVector(MemSize, sizeof(csv_line));
     
     b32 IsParsing = true;
