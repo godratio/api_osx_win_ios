@@ -52,6 +52,16 @@ static b32 IsWhiteSpace(char At)
     return false;
 }
 
+static b32 IsWhiteSpaceNoEndOfLine(char At)
+{
+    if (At == ' '  ||
+        At == '\t')
+    {
+        return true;
+    }
+    return false;
+}
+
 static b32 IsNewLine(char At)
 {
     return (At == '\n' || At == '\r');
@@ -137,13 +147,27 @@ static void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
         }
     }
 }
-static void EatAllWhiteSpace(tokenizer *Tokenizer)
+
+static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = false)
 {
-    while (IsWhiteSpace(*Tokenizer->At))
+    if(IncludeEndOfLineChars)
     {
-        ++Tokenizer->At;
+        while (IsWhiteSpace(*Tokenizer->At))
+        {
+            ++Tokenizer->At;
+        }
+        
+    }
+    else
+    {
+        while (IsWhiteSpaceNoEndOfLine(*Tokenizer->At))
+        {
+            ++Tokenizer->At;
+        }
+        
     }
 }
+
 
 static token 
 GetToken(tokenizer *Tokenizer,memory_partition* Partition)
@@ -237,7 +261,7 @@ static token
 GetCSVToken(tokenizer *Tokenizer,memory_partition* Partition)
 {
     token Result;
-    //EatAllWhiteSpace(Tokenizer);
+    EatAllWhiteSpace(Tokenizer,false);
     
     while(*Tokenizer->At == ' '  ||
           *Tokenizer->At == '\t')
