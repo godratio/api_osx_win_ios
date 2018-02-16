@@ -672,8 +672,10 @@ APIDEF string* FormatToString(char* StringBuffer,memory_partition* StringMemory)
     Result = CreateStringFromLiteral(CharBuffer,StringMemory);
     return Result;
 }
+
 #include <stdarg.h>
 //#include <iostream>
+
 //TODO(ray): Move this to a more proper place replace std::out
 APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
 {
@@ -686,7 +688,6 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
 #if WINDOWS
         vsprintf_s(TextBuffer,
                    FormatString, List);
-//      std::cout << TextBuffer << std::endl;
         OutputDebugStringA(TextBuffer);
 #elif OSX
         //NOTE(ray):Untested.....
@@ -696,6 +697,13 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
         
         va_end(List);
     }
+}
+
+APIDEF void PlatformOutput(const char* FormatString,...)
+{
+    va_list List;
+    va_start(List,FormatString);
+    PlatformOutputToConsole(1,FormatString,0, List);
 }
 
 ///#define //PlatformFormatString(Partition,FormatString,...) PlatformFormatString_(Partition,FormatString,0)
