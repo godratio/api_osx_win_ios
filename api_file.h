@@ -4,18 +4,17 @@ email : raygarner13@gmail.com
 
 api_file  - public domain file handling - 
                                      no warranty implied; use at your own risk
-                                     
-                                     
+
                                      LICENSE
   See end of file for license information.
-  
-  */
+*/
 
 #if !defined(API_FILE_H)
 #include "api_strings.h"
 #include "api_vector.h"
 #include "api_memory.h"
 
+static char* DataDir = "/../../data/";
 //#include <stdio.h>
 //#include <iostream>
 struct read_file_result
@@ -237,7 +236,7 @@ enum directory_type
 
 static string* BuildPathToAssets(memory_partition *Partition,u32 Type)
 {
-    string* DataPath = CreateStringFromLiteral("/../data/",Partition);
+    string* DataPath = CreateStringFromLiteral(DataDir,Partition);
     string* FinalPath;
     if(Type == 0)
     {
