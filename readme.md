@@ -1,3 +1,5 @@
+# OLD PROJECT LEFT TO RELISH IN THESE MEMORIES SOMEDAY
+
 # API_OSX_WIN
 
 These are used/developed for a game in production.
