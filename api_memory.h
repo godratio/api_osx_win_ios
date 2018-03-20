@@ -11,7 +11,7 @@ api_vector  - public domain  emory allocing and deallocing -
   */
 
 #if !defined(API_MEMORY_H)
-
+#include "types.h"
 #if OSX
 #include <mach/mach_init.h>
 #include <mach/mach_vm.h>
@@ -123,12 +123,6 @@ struct memory_partition
     u32 TempCount;
 };
 
-struct duel_memory_partition
-{
-    memory_partition *FixedSized;
-    memory_partition *VariableSized;
-};
-
 struct temp_memory
 {
     memory_partition *Partition;
@@ -152,9 +146,9 @@ PlatformAllocateMemory(memory_index Size)
 #elif WINDOWS
     Result = Win32AllocateMemory(Size);
 #elif IOS
-	Result = IOSAllocateMemory(Size);
+    Result = IOSAllocateMemory(Size);
 #endif
-	return Result;
+    return Result;
 }
 
 inline void
@@ -166,7 +160,7 @@ PlatformDeAllocateMemory(void* Memory, memory_index Size)
 #elif WINDOWS
     Win32DeAllocateMemory(Memory,Size);
 #elif IOS
-	IOSDeAllocateMemory(Memory,Size);
+    IOSDeAllocateMemory(Memory,Size);
 #endif
 }
 
@@ -185,6 +179,42 @@ GetAlignmentOffset(memory_partition *Arena, memory_index Alignment)
     return(AlignmentOffset);
 }
 
+struct duel_memory_partition
+{
+    memory_partition FixedSized;
+    memory_partition VariableSized;
+};
+
+static void FreeDuelMemoryPartion(duel_memory_partition* Partition)
+{
+    PlatformDeAllocateMemory(Partition->FixedSized.Base,Partition->FixedSized.Size);    
+    PlatformDeAllocateMemory(Partition->VariableSized.Base,Partition->VariableSized.Size);    
+}
+
+static void FreeMemoryPartion(memory_partition* Partition)
+{
+    PlatformDeAllocateMemory(Partition->Base,Partition->Size);    
+}
+
+static memory_partition AllocateMemoryPartition(u32 Size)
+{
+    memory_partition Result;
+    void* Base = PlatformAllocateMemory(Size);
+    Result.Base = Base;
+    Result.Size = Size;
+    Result.Used = 0;
+    Result.TempCount = 0;
+    return Result;    
+}
+
+static duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
+{
+    duel_memory_partition Result;
+    Result.FixedSized = AllocateMemoryPartition(Size);
+    Result.VariableSized = AllocateMemoryPartition(Size);
+    return Result;
+}
+
 static void AllocatePartition(memory_partition *Partition, u32 Size, void* Base)
 {
     //Assert
@@ -192,6 +222,7 @@ static void AllocatePartition(memory_partition *Partition, u32 Size, void* Base)
     Partition->Size = Size;
     Partition->Used = 0;
     Partition->TempCount = 0;
+    
 }
 
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
@@ -246,12 +277,12 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
 static void ClearSize(memory_partition *Partition,u32 Size)
 {
     Assert(Size > 0)
-    Size--;
+        Size--;
     if(Partition->Used < Size)
     {
         Size = Partition->Used;
     }
-
+    
     if(Partition->Used == 0)
     {
         return;
@@ -265,7 +296,8 @@ static void ClearSize(memory_partition *Partition,u32 Size)
         }
     }
 }
-
+#define ZeroStruct(Instance) ClearToZero(&(Instance),sizeof(Instance))
+#define ZeroArray(Count, Pointer) ClearToZero(Pointer,Count*sizeof((Pointer)[0]))
 static void ClearToZero(void* Mem,u32 Size)
 {
     Assert(Size > 0)
@@ -294,6 +326,36 @@ static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_param
     Partition->Used = Partition->Used + Size;
     
     return Result;
+}
+
+inline partition_push_params
+NoClear(void)
+{
+    partition_push_params Params = DefaultPartitionParams();
+    Params.Flags &= ~PartitionFlag_ClearToZero;
+    return(Params);
+}
+
+inline char *
+PushCharString(memory_partition *Partition, char *CharString)
+{
+    u32 Size = 1;
+    for(char *At = CharString;
+        *At;
+        ++At)
+    {
+        ++Size;
+    }
+    
+    char *Dest = (char *)PushSize_(Partition, Size, NoClear());
+    for(u32 CharIndex = 0;
+        CharIndex < Size;
+        ++CharIndex)
+    {
+        Dest[CharIndex] = CharString[CharIndex];
+    }
+    
+    return(Dest);
 }
 
 
