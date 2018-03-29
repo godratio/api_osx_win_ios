@@ -4,18 +4,17 @@ email : raygarner13@gmail.com
 
 api_file  - public domain file handling - 
                                      no warranty implied; use at your own risk
-                                     
-                                     
+
                                      LICENSE
   See end of file for license information.
-  
-  */
+*/
 
 #if !defined(API_FILE_H)
 #include "api_strings.h"
 #include "api_vector.h"
 #include "api_memory.h"
 
+static char* DataDir = "/../../data/";
 //#include <stdio.h>
 //#include <iostream>
 struct read_file_result
@@ -39,6 +38,7 @@ struct file_info
 
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
+
 
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(memory_partition *Partition)
@@ -214,9 +214,46 @@ IOSReadEntireFile(string Path)
 #if WINDOWS
 #include <windows.h>
 
-static string* BuildPathToAssets(memory_partition *Partition)
+enum directory_type
 {
-    string* DataPath = CreateStringFromLiteral("/../raze/data/",Partition);
+    Directory_Models,
+    Directory_Materials,    
+    Directory_Shaders,
+    Directory_Textures,
+    Directory_Sounds,
+    Directory_Fonts
+};
+
+static string* BuildPathToAssets(memory_partition *Partition,u32 Type)
+{
+    string* DataPath = CreateStringFromLiteral(DataDir,Partition);
+    string* FinalPath;
+    if(Type == 0)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);
+    }
+    else if(Type == 1)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("material/",Partition),Partition);
+    }
+    else if(Type == 2)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("shaders/",Partition),Partition);
+    }
+    else if(Type == 3)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
+    }
+    else if(Type == 4)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
+    }
+    else if(Type == 5)
+    {
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
+    }
+
+
     u32 MaxDirSize = Partition->Size;
     string* CurrentDir = AllocatEmptyString(Partition);
     u32 Size = GetCurrentDirectory(0,NULL);
@@ -226,7 +263,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
     {
         //TODO(ray):Some error handling.
     }
-    return AppendString(*CurrentDir,*DataPath,Partition);;
+    return AppendString(*CurrentDir,*FinalPath,Partition);;
 }
 
 static dir_files_result
@@ -356,11 +393,11 @@ static read_file_result PlatformReadEntireFile(string* FileName)
     return Result;
 }
 
-static read_file_result PlatformReadEntireFileWithAssets(string* FileName,memory_partition *Memory)
+static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Type,memory_partition *Memory)
 {
     read_file_result Result;
 #if WINDOWS
-    string* AssetPath = BuildPathToAssets(Memory);
+    string* AssetPath = BuildPathToAssets(Memory,Type);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     *FinalPathToAsset = NullTerminate(*FinalPathToAsset);
     Result = Win32ReadEntireFile(*FinalPathToAsset);
@@ -381,15 +418,31 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,memory
 }
 
 
-static dir_files_result PlatformGetAllFilesInDir(string TerminatedPathTestDir,memory_partition *StringMem)
+static dir_files_result PlatformGetAllFilesInDir(string Path,memory_partition *StringMem)
 {
     dir_files_result Result;
 #if WINDOWS
-    Result = Win32GetAllFilesInDir(TerminatedPathTestDir, StringMem);
+    Result = Win32GetAllFilesInDir(Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(TerminatedPathTestDir, StringMem);
+    Result = OSXGetAllFilesInDir(Path, StringMem);
 #elif IOS
-    Result = IOSGetAllFilesInDir(TerminatedPathTestDir, StringMem);
+    Result = IOSGetAllFilesInDir(Path, StringMem);
+#endif
+    return Result;
+}
+
+static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type,memory_partition *StringMem)
+{
+    dir_files_result Result;
+
+    string* Path = BuildPathToAssets(StringMem,Type);
+
+#if WINDOWS
+    Result = Win32GetAllFilesInDir(*Path, StringMem);
+#elif OSX
+    Result = OSXGetAllFilesInDir(*Path, StringMem);
+#elif IOS
+    Result = IOSGetAllFilesInDir(*Path, StringMem);
 #endif
     return Result;
 }

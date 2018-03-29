@@ -111,18 +111,17 @@ ParseBoolFromString(string Test,memory_partition *Memory)
 	return Result;
 }
 
-//TODO(RAY):This does not properly trunucate a float instead it just removes the decimal point
 static s32
-ConvertStringToInt32(string String, s32 *Sign)
+ConvertStringToInt32(string String)
 {
     s32 Result = 0;
     b32 Started = false;
-    
+    s32 Sign = 1;    
     for (u32 Character = 0; Character < (u32)String.Length; ++Character)
     {
         if (String.String[Character] == '-' && !Started)
         {
-            *Sign = -1;
+            Sign = -1;
             continue;
         }
         if ((String.String[Character] == ' ' || String.String[Character] == '.' ||
@@ -133,9 +132,10 @@ ConvertStringToInt32(string String, s32 *Sign)
         Result = ((Result * 10) + String.String[Character]) - '0';
     }
     
-    Result = Result * (*Sign);
+    Result = Result * (Sign);
     return Result;
 }
+
 //TODO(RAY):This does not properly trunucate a float instead it just removes the decimal point
 static f32
 ConvertStringToFraction(string String, s32 *Sign)
@@ -173,11 +173,11 @@ struct float_proxy
     
 };
 
-static f64 ParseFloat(string String)
+static f64 ParseFloat(char* String)
 {
     u32 CharIndex = 0;
-    char *Str = String.String;
-    u32 Length = String.Length;
+    char *Str = String;
+    u32 Length = CalculateCharLength(String);
     
     f64 Sign = 1.0;
     if (Str[CharIndex] == '-')
@@ -370,7 +370,7 @@ GetFloatBasis(memory_partition *Partition, string* FloatString)
     {
         if (Index == 0)
         {
-            s32 Converted = ConvertStringToInt32(*FloatCanidate, &Sign);
+            s32 Converted = ConvertStringToInt32(*FloatCanidate);
             Result.Whole = Converted;
         }
         else
@@ -384,6 +384,7 @@ GetFloatBasis(memory_partition *Partition, string* FloatString)
     return Result;
 }
 
+/*
 static f32
 ParseFloat(memory_partition *Partition, string* FloatString)
 {
@@ -402,7 +403,7 @@ ParseFloat(memory_partition *Partition, string* FloatString)
     f32 TrueFraction = Whole + NewFraction;
     return TrueFraction;
 }
-
+*/
 #define API_PARSE_H
 #endif
 

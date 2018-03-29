@@ -196,20 +196,20 @@ APIDEF string* CreateStringFromToChar(char* String,char* End, memory_partition* 
 
 APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
-    string* Result = (string*)PushSize(Memory->FixedSized, sizeof(string));
+    string* Result = (string*)PushSize(&Memory->FixedSized, sizeof(string));
     
     char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory->VariableSized);
+    void* StartPointer = GetPartitionPointer(Memory->VariableSized);
     char* StringPtr = 0;//(char*)Memory;
     while (At != End)
     {
-        StringPtr = (char*)PushSize(Memory->VariableSized, 1);
+        StringPtr = (char*)PushSize(&Memory->VariableSized, 1);
         *StringPtr = *At;
         Result->Length++;
         At++;
     }
     //One more for a possible null char.
-    (char*)PushSize(Memory->VariableSized, 1);
+    (char*)PushSize(&Memory->VariableSized, 1);
     Result->String = (char*)StartPointer;
     //*Result = NullTerminate(*Result);
     return Result;
@@ -284,6 +284,7 @@ APIDEF int Compare(string A, string B)
     return true;
 }
 
+
 APIDEF int CompareStringtoChar(string A, char* B)
 {
     char* APtr = A.String;
@@ -313,6 +314,24 @@ APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations)
         APtr++; BPtr++;
     }
     return true;
+
+APIDEF b32 CompareChars(char *A, char *B)
+{
+    b32 Result = (A == B);
+    
+    if(A && B)
+    {
+        while(*A && *B && (*A == *B))
+        {
+            ++A;
+            ++B;
+        }
+        
+        Result = ((*A == 0) && (*B == 0));
+    }
+    
+    return(Result);
+
 }
 
 //TODO(ray): Make sure this is never used in game.
@@ -382,6 +401,7 @@ APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
     return Result;
 }
 
+
 APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,memory_partition* Memory)
 {
 	//TODO(RAY):LENGTH IS WRONG
@@ -438,6 +458,34 @@ APIDEF string* EnforceMinSize(string* String,u32 MinSize,memory_partition* Memor
 
 #define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+
+
+APIDEF u32 CalculateStringLength(string* String)
+{
+    u32 Length = 0;
+    char* At = String->String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
+    String->Length = Length;
+    return Length;
+}
+
+APIDEF u32 CalculateCharLength(char* String)
+{
+    u32 Length = 0;
+    char* At = String;
+    while(*At)
+    {
+        Length++;
+        At++;
+    }
+    return Length;
+}
+
+
 APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
 {
     string *Result = PushStruct(Memory,string);
@@ -747,8 +795,8 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
 #if WINDOWS
         vsprintf_s(TextBuffer,
                    FormatString, List);
-        printf(TextBuffer);
 
+        printf(TextBuffer);
 #elif OSX
         vsprintf(TextBuffer, FormatString, List);
         printf("%s",TextBuffer);
@@ -764,6 +812,35 @@ APIDEF char* PlatformOutputInputPrompt(b32 UseToggle,const char* FormatString,u3
     PlatformOutputToConsole(UseToggle,FormatString,0,"");
     fgets(Input,2048,stdin);
     return Input;
+
+  APIDEF void PlatformOutput(const char* FormatString,...)
+{
+    va_list List;
+    va_start(List,FormatString);
+    PlatformOutputToConsole(1,FormatString,0, List);
+}
+
+///#define //PlatformFormatString(Partition,FormatString,...) PlatformFormatString_(Partition,FormatString,0)
+internal string* PlatformFormatString_(memory_partition* Partition,const char* FormatString, u32 __Dummy, ...)
+{
+    
+    string* Result;
+    va_list List;
+    va_start(List, __Dummy);
+    char TextBuffer[100];
+#if OSX
+    vsprintf(TextBuffer,
+             FormatString,List);
+#elif WINDOWS
+    vsprintf_s(TextBuffer,
+               FormatString,List);
+#elif IOS
+    vsprintf(TextBuffer,
+             FormatString,List);
+#endif
+    Result = CreateStringFromLiteral(TextBuffer,Partition);
+    va_end(List);
+    return Result;
 }
 
 #define API_STRINGS_H
