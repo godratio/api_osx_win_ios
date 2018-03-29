@@ -12,26 +12,6 @@ api_strings  - public domain string handling -
 
 #if !defined(API_STRINGS_H)
 
-#ifdef API_STRING_STATIC
-#define APIDEF static
-#else
-#ifdef __cplusplus
-#define APIDEF extern "C"
-#else
-#define APIDEF extern
-#endif
-#endif
-
-#ifndef _MSC_VER
-#ifdef __cplusplus
-#define api__inline inline
-#else
-#define api__inline
-#endif
-#else
-#define api__inline __forceinline
-#endif
-
 #define MAX_FILENAME_LENGTH 50
 #define MAX_FILE_EXTENSION_LENGTH 10
 
@@ -172,19 +152,20 @@ APIDEF string* CreateStringFromLiteral(char* String,memory_partition* Memory)
 APIDEF string* String_Allocate(char* String)
 {
     u32 Length = String_GetLength_Char(String);
-    void* Mem = PlatformAllocateMemory(Length);
+    void* Mem = PlatformAllocateMemory(sizeof(string) + Length);
     string* Result = (string*)Mem;
     Result->Length = 0;
     char* At = String;
-    void* StartPointer = Mem;
-    char* StringPtr = (char*)Mem;
+    char* StartPointer = (char*)Mem + sizeof(string);
+    char* StringPtr = (char*)Mem + sizeof(string);
     while (*At)
     {
-        *StringPtr++ = *At;
-        Result->Length++;
+        *StringPtr = *At;
+        StringPtr++;
+//        Result->Length++;
         At++;
     }
-    Result->String = (char*)StartPointer;
+    Result->String = StartPointer;
     Result->Length = Length;
     return Result;
 }
@@ -251,6 +232,7 @@ APIDEF string* CreateStringFromToPointer(char* String, char* End, memory_partiti
     Result->String = (char*)StartPointer;
     return Result;
 }
+
 APIDEF string* CreateStringFromLength(char* String,u32 Length,memory_partition* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
@@ -302,6 +284,37 @@ APIDEF int Compare(string A, string B)
     return true;
 }
 
+
+APIDEF int CompareStringtoChar(string A, char* B)
+{
+    char* APtr = A.String;
+    char* BPtr = B;
+        
+    u32 MaxIterations = A.Length;
+    for(u32 Index = 0;Index < MaxIterations;++Index)
+    {
+//TODO(Ray):Need to check logic here for string where B is longer than A
+        if (*APtr != *BPtr)
+            return false;
+        APtr++; BPtr++;
+    }
+    return true;
+}
+ 
+APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations)
+{
+    char* APtr = A;
+    char* BPtr = B;
+        
+    for(u32 Index = 0;Index < MaxIterations;++Index)
+    {
+        if(*APtr == '\0' || *BPtr == '\0')break;
+        if (*APtr != *BPtr)
+            return false;
+        APtr++; BPtr++;
+    }
+    return true;
+
 APIDEF b32 CompareChars(char *A, char *B)
 {
     b32 Result = (A == B);
@@ -318,6 +331,7 @@ APIDEF b32 CompareChars(char *A, char *B)
     }
     
     return(Result);
+
 }
 
 //TODO(ray): Make sure this is never used in game.
@@ -356,6 +370,7 @@ APIDEF string* GetExtension(string* FileNameOrPathWithExtension,memory_partition
     string* ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
     return ExtensionName;
 }
+
 APIDEF string* StripExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
@@ -387,6 +402,64 @@ APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
 }
 
 
+APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,memory_partition* Memory)
+{
+	//TODO(RAY):LENGTH IS WRONG
+    string* Result = PushStruct(Memory,string);
+	Result->String = (char*)PushSize(Memory,String->Length + PadAmount);
+    Result->Length = PadAmount + String->Length;
+//    char* At = Result->String;
+    char* SourceString = String->String;
+//    while(*At++)
+    for(u32 StringIndex = 0;StringIndex < Result->Length;++StringIndex)
+    {
+        char* At = Result->String + StringIndex;   
+        if(StringIndex > String->Length - 1)
+        {
+            *At = PadChar;
+            if(StringIndex <= (String->Length + PadAmount))
+            {
+                At++;
+                *At = '\0';
+            }
+        }
+        else
+        {
+            *At = *SourceString++;
+        }
+    }
+    return Result;
+}
+
+APIDEF string* EnforceMinSize(string* String,u32 MinSize,memory_partition* Memory)
+{
+    if(String->Length < MinSize)
+    {
+        int Diff = MinSize - String->Length;
+        String = String_PadRight(String,' ',Diff,Memory);
+    }
+    else if(String->Length > MinSize)
+    {
+        u32 Count = 0;
+        char* At = String->String;
+
+        while(*At++)
+        {
+            if(Count < MinSize + 2)
+            {
+                String->Length = MinSize;
+                *At = '\0';
+            }
+            Count++;
+        }
+    }
+    return String;
+}
+
+#define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
+#define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+
+
 APIDEF u32 CalculateStringLength(string* String)
 {
     u32 Length = 0;
@@ -411,6 +484,7 @@ APIDEF u32 CalculateCharLength(char* String)
     }
     return Length;
 }
+
 
 APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
 {
@@ -440,6 +514,40 @@ APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
     Result->String = (char*)StartPointer;
     *Result = NullTerminate(*Result);
     return Result;
+}
+
+#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+APIDEF void AppendStringAndAdvance(string* Front,string Back,memory_partition* Memory)
+{
+    u32 Length = 0;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StrPtr;
+    char* At = Front->String;
+    u32 Iterations = 0;
+
+    while(*At && Iterations < Front->Length)
+    {
+        StrPtr = (char*)PushSize(Memory,1);
+        *StrPtr = *At;
+        Length++;
+        At++;
+        Iterations++;
+    }
+    At = Back.String;
+    Iterations = 0;
+
+    while(*At && Iterations < Back.Length)
+    {
+        StrPtr = (char*)PushSize(Memory,1);
+        *StrPtr = *At;
+        Length++;
+        At++;
+        Iterations++;
+    }
+
+    Front->String = (char*)StartPointer;
+    Front->Length = Length;
+    *Front = NullTerminate(*Front);
 }
 
 APIDEF string* ElementIterator(fixed_element_size_list *Array)
@@ -674,8 +782,7 @@ APIDEF string* FormatToString(char* StringBuffer,memory_partition* StringMemory)
 }
 
 #include <stdarg.h>
-//#include <iostream>
-
+#include <stdio.h>
 //TODO(ray): Move this to a more proper place replace std::out
 APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
 {
@@ -683,23 +790,30 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
     {
         va_list List;
         va_start(List, __Dummy);
-        
         char TextBuffer[100];
+        
 #if WINDOWS
         vsprintf_s(TextBuffer,
                    FormatString, List);
-        OutputDebugStringA(TextBuffer);
+
+        printf(TextBuffer);
 #elif OSX
-        //NOTE(ray):Untested.....
         vsprintf(TextBuffer, FormatString, List);
-        std::cout << TextBuffer << std::endl;
+        printf("%s",TextBuffer);
 #endif
-        
         va_end(List);
     }
 }
 
-APIDEF void PlatformOutput(const char* FormatString,...)
+//TODO(Ray):Get this out of global mem space.
+char Input[2048];
+APIDEF char* PlatformOutputInputPrompt(b32 UseToggle,const char* FormatString,u32 _Dummy,...)
+{
+    PlatformOutputToConsole(UseToggle,FormatString,0,"");
+    fgets(Input,2048,stdin);
+    return Input;
+
+  APIDEF void PlatformOutput(const char* FormatString,...)
 {
     va_list List;
     va_start(List,FormatString);

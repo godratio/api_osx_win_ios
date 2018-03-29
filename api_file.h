@@ -26,7 +26,6 @@ struct read_file_result
 struct dir_files_result
 {
     vector Files;
-    
 };
 
 struct file_info
@@ -38,6 +37,8 @@ struct file_info
 };
 
 #if OSX
+#include <CoreFoundation/CoreFoundation.h>
+
 
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(memory_partition *Partition)
@@ -52,7 +53,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
     {
         // error
     }
-    CalculateStringLength(CurrentDir);
+    String_GetLength_String(CurrentDir);
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
 }
 
@@ -64,17 +65,15 @@ OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
     
     char* WildCard = "\\*";
     string* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard,StringMem), StringMem);
-    
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
-    
-    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, nullptr);
+    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
-    while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess) {
+    while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess)
+    {
         CFNumberRef valueNum = NULL;
-        
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
         string* PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
@@ -88,9 +87,9 @@ OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
         
         string* FileName = CreateStringFromLength(End, StepCount, StringMem);
         file_info Info;
-        Info.Name = FileName;// CreateStringFromLiteral(FileName,StringMem);// ffd.cFileName;
+        Info.Name = FileName;
         PushVectorElement(&Result.Files, &Info);
-        if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, nullptr) && (valueNum != NULL))
+        if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL))
         {
         }
     }
@@ -101,7 +100,6 @@ static read_file_result
 OSXReadEntireFile(string Path)
 {
     read_file_result Result;
-    
     FILE *File = fopen (Path.String, "r");
     if (File == NULL)
     {
@@ -110,7 +108,6 @@ OSXReadEntireFile(string Path)
     }
     else
     {
-        
         u64 FileSize;
         fseek(File, 0, SEEK_END);
         FileSize = ftell(File);
@@ -119,10 +116,8 @@ OSXReadEntireFile(string Path)
         kern_return_t kr;
         mach_vm_address_t address;
         Result.ContentSize = (s32)FileSize;
-        
         mach_vm_size_t size = (mach_vm_size_t)FileSize;
         kr = mach_vm_allocate(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
-        
         Result.Content = (void*)address;//allocl mem;
         fread(Result.Content, Result.ContentSize, 1, File);
         fclose(File);
@@ -137,8 +132,6 @@ OSXReadEntireFile(string Path)
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(memory_partition *Partition)
 {
-    //string* CurrentDir = AllocatEmptyString(Partition);
-    //string* DataPath = CreateStringFromLiteral("/../raze/data/",Partition);
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
     //TODO(ray):Verify this is big enough.
@@ -147,7 +140,6 @@ static string* BuildPathToAssets(memory_partition *Partition)
     PushSize(Partition,DirMaxSize);
     if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir->String, DirMaxSize))
     {
-        // error
     }
     CalculateStringLength(CurrentDir);
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
@@ -161,15 +153,15 @@ IOSGetAllFilesInDir(string Path,memory_partition *StringMem)
     
     char* WildCard = "\\*";
     string* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard,StringMem), StringMem);
-    
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
-    
-    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, nullptr);
+    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
-    while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess) {
+
+    while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess)
+    {
         CFNumberRef valueNum = NULL;
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
@@ -181,7 +173,6 @@ IOSGetAllFilesInDir(string Path,memory_partition *StringMem)
             --End;
             ++StepCount;
         }
-        
         string* FileName = CreateStringFromLength(End, StepCount, StringMem);
         file_info Info;
         Info.Name = FileName;// CreateStringFromLiteral(FileName,StringMem);// ffd.cFileName;
@@ -197,7 +188,6 @@ static read_file_result
 IOSReadEntireFile(string Path)
 {
     read_file_result Result;
-    
     FILE *File = fopen (Path.String, "r");
     if (File == NULL)
     {
@@ -337,14 +327,12 @@ Win32ReadEntireFile(string Path)
     
     if(File != INVALID_HANDLE_VALUE)
     {
-        
         LARGE_INTEGER FileSize;
         if(GetFileSizeEx(
             File,
             &FileSize
             ))
         {
-            
             DWORD SizeResult;
             Result.Content = VirtualAlloc(
                 0,
@@ -352,7 +340,6 @@ Win32ReadEntireFile(string Path)
                 MEM_COMMIT | MEM_RESERVE,
                 PAGE_READWRITE
                 );
-            
             if(Result.Content)
             {
                 if(ReadFile(
@@ -364,7 +351,6 @@ Win32ReadEntireFile(string Path)
                     ))
                 {
                     Result.ContentSize = FileSize.QuadPart;
-                    return Result;
                 }
                 else
                 {

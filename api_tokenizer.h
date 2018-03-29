@@ -52,6 +52,16 @@ static b32 IsWhiteSpace(char At)
     return false;
 }
 
+static b32 IsWhiteSpaceNoEndOfLine(char At)
+{
+    if (At == ' '  ||
+        At == '\t')
+    {
+        return true;
+    }
+    return false;
+}
+
 static b32 IsNewLine(char At)
 {
     return (At == '\n' || At == '\r');
@@ -60,6 +70,11 @@ static b32 IsNewLine(char At)
 static b32 IsSingleLineCommentCPPStyle(char* At)
 {
     return (At[0] == '/' && At[1] == '/');
+}
+
+static b32 IsSingleLineCommentLispStyle(char* At)
+{
+    return (At[0] == ';');
 }
 
 static b32 IsMultiLineCommentCStyle(char* At)
@@ -107,7 +122,6 @@ static void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
     {
         if(IsNewLine(*Tokenizer->At))
         {
-            //++Tokenizer->At;
             return;
         }
         else
@@ -133,13 +147,27 @@ static void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
         }
     }
 }
-static void EatAllWhiteSpace(tokenizer *Tokenizer)
+
+static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = false)
 {
-    while (IsWhiteSpace(*Tokenizer->At))
+    if(IncludeEndOfLineChars)
     {
-        ++Tokenizer->At;
+        while (IsWhiteSpace(*Tokenizer->At))
+        {
+            ++Tokenizer->At;
+        }
+        
+    }
+    else
+    {
+        while (IsWhiteSpaceNoEndOfLine(*Tokenizer->At))
+        {
+            ++Tokenizer->At;
+        }
+        
     }
 }
+
 
 static token 
 GetToken(tokenizer *Tokenizer,memory_partition* Partition)
@@ -233,7 +261,7 @@ static token
 GetCSVToken(tokenizer *Tokenizer,memory_partition* Partition)
 {
     token Result;
-    //EatAllWhiteSpace(Tokenizer);
+    EatAllWhiteSpace(Tokenizer,false);
     
     while(*Tokenizer->At == ' '  ||
           *Tokenizer->At == '\t')
@@ -319,10 +347,10 @@ struct csv_data
 
 //NOTE(ray):Output will be a vector
 static csv_data
-ParseCSV(memory_partition Memory, char* TextString)
+ParseCSV(memory_partition Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
-    u32 MemSize = 500;
+    u32 MemSize = 10000;
     Data.Lines = CreateVector(MemSize, sizeof(csv_line));
     
     b32 IsParsing = true;
@@ -333,7 +361,7 @@ ParseCSV(memory_partition Memory, char* TextString)
     //token *Token;
     u32 LineNumber = 0;
     csv_line* CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-    CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
+    CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
     token PrevToken;
     while(IsParsing)
     {
@@ -352,7 +380,7 @@ ParseCSV(memory_partition Memory, char* TextString)
             {
                 ++LineNumber;
                 CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-                CurrentLine->Fields = CreateVector(10,sizeof(csv_field));
+                CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
             }
         }
         
@@ -361,7 +389,6 @@ ParseCSV(memory_partition Memory, char* TextString)
             break;
         }
         PrevToken = Token;
-        
     }
     
     FreeVectorMem(&TokenVector);
@@ -370,12 +397,16 @@ ParseCSV(memory_partition Memory, char* TextString)
 
 struct cfg_entry
 {
+    b32 IsDef;    
 	string Key;
 	string Text;
+    var_type Type;
 };
 
 struct cfg_block
 {
+    b32 IsDef;
+    string Name;
     vector Entries;
 };
 
@@ -415,7 +446,7 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
                if(Tokenizer->At[0] == '-')
                {
                    Result.Type = Token_Dash;
-                   Tokenizer->At = Tokenizer->At + 2;
+                   Tokenizer->At = Tokenizer->At + 1;
                    return Result;
                }
             }break;
@@ -454,8 +485,6 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
                 {
                     Result.Type = Token_Unknown;
                 }
-                
-                
                 return Result;
             }break;
         }
@@ -466,7 +495,6 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
 {
     token Token = GetCFGToken(Tokenizer,Memory);
     cfg_entry EntryCanidate;
-    
     if(RequireToken(Token, Token_Identifier))
     {
         EntryCanidate.Key = *Token.Data;
@@ -482,7 +510,6 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
             }
             else
             {
-                
             }
         }
         else
@@ -495,18 +522,32 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
         //TODO(ray): No identifier for key.
     }
 }
+
 #define MAX_BLOCKS 100
-static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
+static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,memory_partition *Memory)
+{
+    string* TaskName = NameToken.Data;
+    
+    cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    Block->Name = *TaskName;
+    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    ParseConfigKeyValues(Block,Tokenizer, Memory);
+    
+}
+
+static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    Block->Name = *TaskName;
+    Block->IsDef = true;
     Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
-//NOTE(ray):Output will be a vector
+
 static cfg_data
 ParseConfig(memory_partition *Memory, char* TextString)
 {
@@ -524,9 +565,19 @@ ParseConfig(memory_partition *Memory, char* TextString)
     for (;;)
     {
         token Token = GetCFGToken(&Tokenizer, Memory);
-        if(Token.Type == Token_Dash)
+        if(RequireToken(Token,Token_Dash))
         {
-            ParseConfigBlock(&Data,&Tokenizer, Memory);
+            token NextToken = GetCFGToken(&Tokenizer,Memory);
+            if(RequireToken(NextToken,Token_Colon))
+            {
+                //Parse def block
+                ParseDefBlock(&Data,&Tokenizer,Memory);
+            }
+            else
+            {
+                ParseConfigBlock(&Data,&Tokenizer,NextToken, Memory);                
+            }
+
         }
         if (Token.Type == Token_EndOfStream)
         {
@@ -535,7 +586,6 @@ ParseConfig(memory_partition *Memory, char* TextString)
     }
     return Data;
 }
-
 
 static token
 GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
@@ -614,5 +664,83 @@ GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
     }
     return Result;
 }
+
+static token
+GetSeedToken(tokenizer *Tokenizer, memory_partition* Partition)
+{
+    token Result;
+    EatAllWhiteSpace(Tokenizer);
+    //Comment skipped.
+    if(IsSingleLineCommentLispStyle(Tokenizer->At))
+    {
+        ParseSingleLineCommentCPPStyle(Tokenizer);
+    }
+//    if(IsMultiLineCommentCStyle(Tokenizer->At))
+//    {
+//        ParseMultLineCommentCStyle(Tokenizer);
+//    }
+    char AtChar = *Tokenizer->At;
+    ++Tokenizer->At;
+    switch (AtChar)
+    {
+        case '(': {Result.Type = Token_OpenParen; }break;
+        case ')': {Result.Type = Token_CloseParen; }break;
+        case '{': {Result.Type = Token_OpenBrace; }break;
+        case '}': {Result.Type = Token_CloseBrace; }break;
+        case ':': {Result.Type = Token_Colon; }break;
+        case ',': {Result.Type = Token_Comma; }break;
+        case '_': {Result.Type = Token_Underscore; }break;
+/*Note(Ray):We allow dashes in the identiefiers in lispy/seed
+        case '-': 
+        {
+            if(Tokenizer->At[0] == '-')
+            {
+                Result.Type = Token_Dash;
+//                Tokenizer->At = Tokenizer->At + 1;
+                return Result;
+            }
+        }break;
+*/
+        case '\0': {
+            Result.Type = Token_EndOfStream;
+            return Result;
+        }break;
+        case '"':
+        {
+            Result.Type = Token_String;
+            char* Start = Tokenizer->At;
+            while (Tokenizer->At[0] != '"')
+            {
+                Tokenizer->At++;
+                continue;
+            }
+            Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+            Tokenizer->At++;
+            return Result;
+        }break;
+        default:
+        {
+//            if(IsAlpha(AtChar))
+            {
+                Result.Type = Token_Identifier;
+                char* Start = Tokenizer->At - 1;
+                while (IsAlpha(*Tokenizer->At) ||
+                       IsNum(*Tokenizer->At))
+                {
+                    Tokenizer->At++;
+                    continue;
+                }
+                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+            }
+//            else
+            {
+//                Result.Type = Token_Unknown;
+            }
+            return Result;
+        }break;
+    }
+    return Result;
+}
+
 #define API_TOKENIZER_H
 #endif

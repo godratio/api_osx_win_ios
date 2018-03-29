@@ -38,7 +38,7 @@ typedef u32 b32;
 #ifdef OSX
 typedef __darwin_size_t memory_index;
 #else
-typedef size_t memory_index;
+typedef intptr_t memory_index;
 #endif
 
 #define Assert(Expression) if(!(Expression)){*(int *)0 = 0;};
