@@ -170,7 +170,7 @@ static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = fa
 
 
 static token 
-GetToken(tokenizer *Tokenizer,memory_partition* Partition)
+GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
 {
     token Result;
     EatAllWhiteSpace(Tokenizer);
@@ -258,7 +258,7 @@ GetToken(tokenizer *Tokenizer,memory_partition* Partition)
 //use the token api to just handle the special cases for their use case.
 //ie get raw tokens above and handle lexing of the text for each case seperately.
 static token 
-GetCSVToken(tokenizer *Tokenizer,memory_partition* Partition)
+GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
 {
     token Result;
     EatAllWhiteSpace(Tokenizer,false);
@@ -347,7 +347,7 @@ struct csv_data
 
 //NOTE(ray):Output will be a vector
 static csv_data
-ParseCSV(memory_partition Memory, char* TextString,u32 FieldCount)
+ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
     u32 MemSize = 10000;
@@ -416,7 +416,7 @@ struct cfg_data
 };
 
 static token
-GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
+GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
     EatAllWhiteSpace(Tokenizer);
@@ -491,7 +491,7 @@ GetCFGToken(tokenizer *Tokenizer, memory_partition* Partition)
     return Result;
 }
 
-static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_partition* Memory)
+static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryArena* Memory)
 {
     token Token = GetCFGToken(Tokenizer,Memory);
     cfg_entry EntryCanidate;
@@ -524,7 +524,7 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,memory_pa
 }
 
 #define MAX_BLOCKS 100
-static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,memory_partition *Memory)
+static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
 {
     string* TaskName = NameToken.Data;
     
@@ -535,7 +535,7 @@ static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken
     
 }
 
-static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *Memory)
+static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
@@ -549,7 +549,7 @@ static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,memory_partition *
 }
 
 static cfg_data
-ParseConfig(memory_partition *Memory, char* TextString)
+ParseConfig(MemoryArena *Memory, char* TextString)
 {
 	cfg_data Data;
 	u32 MemSize = 30;
@@ -588,7 +588,7 @@ ParseConfig(memory_partition *Memory, char* TextString)
 }
 
 static token
-GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
+GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
     EatAllWhiteSpace(Tokenizer);
@@ -666,7 +666,7 @@ GetUIToken(tokenizer *Tokenizer, memory_partition* Partition)
 }
 
 static token
-GetSeedToken(tokenizer *Tokenizer, memory_partition* Partition)
+GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
     EatAllWhiteSpace(Tokenizer);

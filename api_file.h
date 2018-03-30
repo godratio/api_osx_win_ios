@@ -224,7 +224,7 @@ enum directory_type
     Directory_Fonts
 };
 
-static string* BuildPathToAssets(memory_partition *Partition,u32 Type)
+static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     string* DataPath = CreateStringFromLiteral(DataDir,Partition);
     string* FinalPath;
@@ -253,8 +253,6 @@ static string* BuildPathToAssets(memory_partition *Partition,u32 Type)
         FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
     }
 
-
-    u32 MaxDirSize = Partition->Size;
     string* CurrentDir = AllocatEmptyString(Partition);
     u32 Size = GetCurrentDirectory(0,NULL);
     PushSize(Partition,Size);
@@ -267,7 +265,7 @@ static string* BuildPathToAssets(memory_partition *Partition,u32 Type)
 }
 
 static dir_files_result
-Win32GetAllFilesInDir(string Path,memory_partition *StringMem)
+Win32GetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
     
@@ -393,7 +391,7 @@ static read_file_result PlatformReadEntireFile(string* FileName)
     return Result;
 }
 
-static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Type,memory_partition *Memory)
+static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Type,MemoryArena *Memory)
 {
     read_file_result Result;
 #if WINDOWS
@@ -418,7 +416,7 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Ty
 }
 
 
-static dir_files_result PlatformGetAllFilesInDir(string Path,memory_partition *StringMem)
+static dir_files_result PlatformGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
 #if WINDOWS
@@ -431,7 +429,7 @@ static dir_files_result PlatformGetAllFilesInDir(string Path,memory_partition *S
     return Result;
 }
 
-static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type,memory_partition *StringMem)
+static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type,MemoryArena *StringMem)
 {
     dir_files_result Result;
 
@@ -455,7 +453,7 @@ static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type,memory_partition 
 This software is available under 2 licenses -- choose whichever you prefer.
 ------------------------------------------------------------------------------
 ALTERNATIVE A - MIT License
-Copyright (c) 2017 Sean Barrett
+Copyright (c) 2018 Ray Garner
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to

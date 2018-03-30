@@ -93,7 +93,7 @@ struct float_basis
 };
 
 static b32 
-ParseBoolFromString(string Test,memory_partition *Memory)
+ParseBoolFromString(string Test,MemoryArena *Memory)
 {
 	b32 Result = false;
 	if (Compare(*CreateStringFromLiteral("yes", Memory), Test))
@@ -251,7 +251,7 @@ static f64 ParseFloat(char* String)
 
 //Note(ray):The bit operations will need to be reversed for little endian machines.
 static float_basis
-GetFloatBasis(memory_partition *Partition, string* FloatString)
+GetFloatBasis(MemoryArena *Partition, string* FloatString)
 {
     float_basis Result = {};
     //TODO(RAY):Get the sign of the number here
@@ -386,7 +386,7 @@ GetFloatBasis(memory_partition *Partition, string* FloatString)
 
 /*
 static f32
-ParseFloat(memory_partition *Partition, string* FloatString)
+ParseFloat(MemoryArena *Partition, string* FloatString)
 {
     float_basis FloatBasis = GetFloatBasis(Partition, FloatString);
     //Combine these ints to make a floating point number

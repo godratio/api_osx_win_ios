@@ -115,22 +115,22 @@ DefaultPartitionParams(void)
     return(Params);
 }
 
-struct memory_partition
+struct MemoryArena
 {
     void* Base;
-    u32 Size;
+    memory_index Size;
     u32 Used;
     u32 TempCount;
 };
 
 struct temp_memory
 {
-    memory_partition *Partition;
+    MemoryArena *Partition;
     u32 Used;
 };
 
 static void* 
-GetPartitionPointer(memory_partition Partition)
+GetPartitionPointer(MemoryArena Partition)
 {
     void* Result;
     Result = (uint8_t*)Partition.Base + Partition.Used;
@@ -164,7 +164,7 @@ PlatformDeAllocateMemory(void* Memory, memory_index Size)
 }
 
 inline memory_index
-GetAlignmentOffset(memory_partition *Arena, memory_index Alignment)
+GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
 {
     memory_index AlignmentOffset = 0;
     
@@ -180,8 +180,8 @@ GetAlignmentOffset(memory_partition *Arena, memory_index Alignment)
 
 struct duel_memory_partition
 {
-    memory_partition FixedSized;
-    memory_partition VariableSized;
+    MemoryArena FixedSized;
+    MemoryArena VariableSized;
 };
 
 static void FreeDuelMemoryPartion(duel_memory_partition* Partition)
@@ -190,14 +190,14 @@ static void FreeDuelMemoryPartion(duel_memory_partition* Partition)
     PlatformDeAllocateMemory(Partition->VariableSized.Base,Partition->VariableSized.Size);    
 }
 
-static void FreeMemoryPartion(memory_partition* Partition)
+static void FreeMemoryPartion(MemoryArena* Partition)
 {
     PlatformDeAllocateMemory(Partition->Base,Partition->Size);    
 }
 
-static memory_partition AllocateMemoryPartition(u32 Size)
+static MemoryArena AllocateMemoryPartition(u32 Size)
 {
-    memory_partition Result;
+    MemoryArena Result;
     void* Base = PlatformAllocateMemory(Size);
     Result.Base = Base;
     Result.Size = Size;
@@ -214,28 +214,38 @@ static duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
     return Result;
 }
 
-static void AllocatePartition(memory_partition *Partition, u32 Size, void* Base)
+static void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base)
 {
     //Assert
     Partition->Base = Base;
     Partition->Size = Size;
     Partition->Used = 0;
     Partition->TempCount = 0;
-    
 }
 
-inline memory_partition* PlatformAllocatePartition(memory_index Size)
+static MemoryArena AllocatePartition(memory_index Size, void* Base)
 {
-    u32 SizeOfMP = sizeof(memory_partition);
+    MemoryArena result;
+    //Assert
+    result.Base = Base;
+    result.Size = Size;
+    result.Used = 0;
+    result.TempCount = 0;
+    return result;
+}
+
+inline MemoryArena* PlatformAllocatePartition(memory_index Size)
+{
+    memory_index SizeOfMP = sizeof(MemoryArena);
     Size += SizeOfMP;
     u8* Mem = (u8*)PlatformAllocateMemory(Size);
-    memory_partition* Header = (memory_partition *)Mem;
+    MemoryArena* Header = (MemoryArena *)Mem;
     AllocatePartition(Header,Size - SizeOfMP, Mem + SizeOfMP);
     return Header;
 }
 
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
-static void ClearToZero(memory_partition *Partition)
+static void ClearToZero(MemoryArena *Partition)
 {
     for (u32 ByteIndex = 0; ByteIndex < Partition->Size; ++ByteIndex)
     {
@@ -244,7 +254,7 @@ static void ClearToZero(memory_partition *Partition)
     }
 }
 
-static void DeAllocatePartition(memory_partition *Partition, bool ClearMemToZero = true)
+static void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero = true)
 {
     //Assert
     Partition->Used = 0;
@@ -254,7 +264,7 @@ static void DeAllocatePartition(memory_partition *Partition, bool ClearMemToZero
     }
 }
 
-static temp_memory BeginTempMemory(memory_partition *Partition)
+static temp_memory BeginTempMemory(MemoryArena *Partition)
 {
     temp_memory Result;
     Result.Partition = Partition;
@@ -283,7 +293,7 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
     return false;
 }
 
-static void ClearSize(memory_partition *Partition,u32 Size)
+static void ClearSize(MemoryArena *Partition,u32 Size)
 {
     Assert(Size > 0)
         Size--;
@@ -319,10 +329,10 @@ static void ClearToZero(void* Mem,u32 Size)
 
 //TODO(ray):Add memory alignment options here!!
 
-#define PushArray(Partition,Type,Count,...) PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
+#define PushArray(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
 #define PushStruct(Partition,Type,...) (Type*)PushSize_(Partition,sizeof(Type),## __VA_ARGS__)
 #define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
-static void* PushSize_(memory_partition*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams())
+static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams())
 {
     //Assert Used < Size
     Assert(Partition->Used + Size <= Partition->Size)
@@ -346,7 +356,7 @@ NoClear(void)
 }
 
 inline char *
-PushCharString(memory_partition *Partition, char *CharString)
+PushCharString(MemoryArena *Partition, char *CharString)
 {
     u32 Size = 1;
     for(char *At = CharString;

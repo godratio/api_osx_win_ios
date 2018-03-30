@@ -29,7 +29,7 @@ struct vector
     u32 AtIndex;
     s32 StartAt;
     u32** FreeList;
-    memory_partition* Partition;
+    MemoryArena* Partition;
     u32 Pushable;
 };
 
@@ -52,8 +52,8 @@ static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
     Result.Pushable = true;
     //TODO(ray): change this to get memory froma a pre allocated partition.
     void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);
-    memory_partition* Partition = (memory_partition*)StartingMemory;
-    AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(memory_partition*));
+    MemoryArena* Partition = (MemoryArena*)StartingMemory;
+    AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(MemoryArena*));
     
     Result.Partition = Partition;
     if(PreEmpt)

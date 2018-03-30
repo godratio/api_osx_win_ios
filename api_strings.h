@@ -128,7 +128,7 @@ APIDEF string NullTerminate(string Source)
 }
 
 //TODO(ray):Make a way to reclaim the memory from literals created here.
-APIDEF string* CreateStringFromLiteral(char* String,memory_partition* Memory)
+APIDEF string* CreateStringFromLiteral(char* String,MemoryArena* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
     Result->Length = 0;
@@ -170,13 +170,13 @@ APIDEF string* String_Allocate(char* String)
     return Result;
 }
 
-APIDEF string* AllocatEmptyString(memory_partition* Partition)
+APIDEF string* AllocatEmptyString(MemoryArena* Partition)
 {
     Assert(Partition);
     return CreateStringFromLiteral("",Partition);
 }
 
-APIDEF string* CreateStringFromToChar(char* String,char* End, memory_partition* Memory)
+APIDEF string* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
 {
     string* Result = (string*)PushSize(Memory, sizeof(string));
     
@@ -215,7 +215,7 @@ APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* En
     return Result;
 }
 
-APIDEF string* CreateStringFromToPointer(char* String, char* End, memory_partition* Memory)
+APIDEF string* CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory)
 {
     string* Result = (string*)PushSize(Memory, sizeof(string));
     
@@ -233,7 +233,7 @@ APIDEF string* CreateStringFromToPointer(char* String, char* End, memory_partiti
     return Result;
 }
 
-APIDEF string* CreateStringFromLength(char* String,u32 Length,memory_partition* Memory)
+APIDEF string* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory)
 {
     string* Result = (string*)PushSize(Memory,sizeof(string));
     
@@ -314,6 +314,7 @@ APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations)
         APtr++; BPtr++;
     }
     return true;
+}
 
 APIDEF b32 CompareChars(char *A, char *B)
 {
@@ -329,9 +330,7 @@ APIDEF b32 CompareChars(char *A, char *B)
         
         Result = ((*A == 0) && (*B == 0));
     }
-    
     return(Result);
-
 }
 
 //TODO(ray): Make sure this is never used in game.
@@ -345,7 +344,7 @@ APIDEF void PrintStringToConsole(string String)
     }
 }
 
-APIDEF string* GetExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem,b32 KeepFileExtensionDelimiter = false)
+APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -371,7 +370,7 @@ APIDEF string* GetExtension(string* FileNameOrPathWithExtension,memory_partition
     return ExtensionName;
 }
 
-APIDEF string* StripExtension(string* FileNameOrPathWithExtension,memory_partition *StringMem)
+APIDEF string* StripExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -390,7 +389,7 @@ APIDEF string* StripExtension(string* FileNameOrPathWithExtension,memory_partiti
     return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
 }
 
-APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,memory_partition *StringMem,b32 KeepFileExtensionDelimeter = false)
+APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -402,7 +401,7 @@ APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
 }
 
 
-APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,memory_partition* Memory)
+APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,MemoryArena* Memory)
 {
 	//TODO(RAY):LENGTH IS WRONG
     string* Result = PushStruct(Memory,string);
@@ -431,7 +430,7 @@ APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,memory_
     return Result;
 }
 
-APIDEF string* EnforceMinSize(string* String,u32 MinSize,memory_partition* Memory)
+APIDEF string* EnforceMinSize(string* String,u32 MinSize,MemoryArena* Memory)
 {
     if(String->Length < MinSize)
     {
@@ -486,7 +485,7 @@ APIDEF u32 CalculateCharLength(char* String)
 }
 
 
-APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
+APIDEF string* AppendString(string Front,string Back,MemoryArena* Memory)
 {
     string *Result = PushStruct(Memory,string);
     void* StartPointer = GetPartitionPointer(*Memory);
@@ -517,7 +516,7 @@ APIDEF string* AppendString(string Front,string Back,memory_partition* Memory)
 }
 
 #define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
-APIDEF void AppendStringAndAdvance(string* Front,string Back,memory_partition* Memory)
+APIDEF void AppendStringAndAdvance(string* Front,string Back,MemoryArena* Memory)
 {
     u32 Length = 0;
     void* StartPointer = GetPartitionPointer(*Memory);
@@ -614,7 +613,7 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
             {
                 //TODO(Ray):After looking throught his i seen i left there here i think we can
                 //safe remove this.
-                string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
+                //string* R = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);
             }
             Result.StringCount++;
             At = At + MovedBackCount;
@@ -671,7 +670,7 @@ APIDEF string* API_String_Iterator(strings* StringArray)
 //TODO(ray): Old function can do this much better.  REDO THIS!
 //TODO(ray): This will fail in the case there is no seperator present in the string.
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
-APIDEF fixed_element_size_list SplitString(string Source,char* Separator,memory_partition *Partition,bool SeparatorIsNotLastChar = false)
+APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false)
 {
     
     fixed_element_size_list Result = {0};
@@ -766,7 +765,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,memory_
 }
 
 #define MAX_FORMAT_STRING_SIZE 500
-APIDEF string* FormatToString(char* StringBuffer,memory_partition* StringMemory)
+APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 {
     string* Result;
     char CharBuffer[MAX_FORMAT_STRING_SIZE];
@@ -793,10 +792,8 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
         char TextBuffer[100];
         
 #if WINDOWS
-        vsprintf_s(TextBuffer,
-                   FormatString, List);
-
-        printf(TextBuffer);
+        sprintf_s(TextBuffer,100,FormatString,List);
+        OutputDebugStringA(TextBuffer);
 #elif OSX
         vsprintf(TextBuffer, FormatString, List);
         printf("%s",TextBuffer);
@@ -806,14 +803,15 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
 }
 
 //TODO(Ray):Get this out of global mem space.
-char Input[2048];
-APIDEF char* PlatformOutputInputPrompt(b32 UseToggle,const char* FormatString,u32 _Dummy,...)
-{
-    PlatformOutputToConsole(UseToggle,FormatString,0,"");
-    fgets(Input,2048,stdin);
-    return Input;
 
-  APIDEF void PlatformOutput(const char* FormatString,...)
+APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* FormatString,u32 _Dummy,...)
+{
+    
+    PlatformOutputToConsole(UseToggle,FormatString,0,"");
+    fgets(Buffer,2048,stdin);
+}
+
+APIDEF void PlatformOutput(const char* FormatString,...)
 {
     va_list List;
     va_start(List,FormatString);
@@ -821,7 +819,7 @@ APIDEF char* PlatformOutputInputPrompt(b32 UseToggle,const char* FormatString,u3
 }
 
 ///#define //PlatformFormatString(Partition,FormatString,...) PlatformFormatString_(Partition,FormatString,0)
-internal string* PlatformFormatString_(memory_partition* Partition,const char* FormatString, u32 __Dummy, ...)
+internal string* PlatformFormatString_(MemoryArena* Partition,const char* FormatString, u32 __Dummy, ...)
 {
     
     string* Result;
