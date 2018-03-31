@@ -193,7 +193,8 @@ static void PopVectorElement(vector* Vector)
 
 #define IterateVector(Vector,Type) (Type*)IterateVectorElement_(Vector)
 #define IterateVectorFromIndex(Vector,Type,Index) (Type*)IterateVectorElement_(Vector,Index)
-static void* IterateVectorElement_(vector *Vector, s32 StartAt = -1)
+#define IterateVectorFromToIndex(Vector,Type,Index,ToIndex) (Type*)IterateVectorElement_(Vector,Index,ToIndex)
+static void* IterateVectorElement_(vector *Vector, s32 StartAt = -1,s32 EndAt = -1)
 {
     //TIMED_BLOCK();
     Assert(Vector);
@@ -203,9 +204,9 @@ static void* IterateVectorElement_(vector *Vector, s32 StartAt = -1)
         Vector->AtIndex = StartAt;
         Vector->StartAt = StartAt;
     }
-    else
+    else if(EndAt >= 0 && Vector->AtIndex == (u32)EndAt)
     {
-        
+        return 0;
     }
     return GetVectorElement_(Vector, Vector->AtIndex++);
 }

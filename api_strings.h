@@ -284,7 +284,6 @@ APIDEF int Compare(string A, string B)
     return true;
 }
 
-
 APIDEF int CompareStringtoChar(string A, char* B)
 {
     char* APtr = A.String;
@@ -763,7 +762,9 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
     Result.Head = Result.Sentinal;
     return Result;
 }
-
+ 
+//TODO(RAY):THIS IS GARBAGE USELESS what was I thinking.
+//need to have most of these functions easy to format strings.
 #define MAX_FORMAT_STRING_SIZE 500
 APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 {
@@ -790,7 +791,6 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 
         va_list List;
         va_start(List, __Dummy);
         char TextBuffer[100];
-        
 #if WINDOWS
         sprintf_s(TextBuffer,100,FormatString,List);
         OutputDebugStringA(TextBuffer);
@@ -818,27 +818,23 @@ APIDEF void PlatformOutput(const char* FormatString,...)
     PlatformOutputToConsole(1,FormatString,0, List);
 }
 
-///#define //PlatformFormatString(Partition,FormatString,...) PlatformFormatString_(Partition,FormatString,0)
-internal string* PlatformFormatString_(MemoryArena* Partition,const char* FormatString, u32 __Dummy, ...)
+static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 {
     
-    string* Result;
-    va_list List;
-    va_start(List, __Dummy);
-    char TextBuffer[100];
+    va_list list;
+    va_start(list,format_string);
+    char TextBuffer[1000];
 #if OSX
-    vsprintf(TextBuffer,
-             FormatString,List);
+    vsprintf(TextBuffer,format_string,list);
 #elif WINDOWS
-    vsprintf_s(TextBuffer,
-               FormatString,List);
+    vsprintf(TextBuffer,format_string,list);
 #elif IOS
-    vsprintf(TextBuffer,
-             FormatString,List);
+    vsprintf(TextBuffer,format_string,list);
 #endif
-    Result = CreateStringFromLiteral(TextBuffer,Partition);
-    va_end(List);
-    return Result;
+    
+    string* result = CreateStringFromLiteral(TextBuffer,arena);
+    va_end(list);
+    return result;
 }
 
 #define API_STRINGS_H
