@@ -168,12 +168,11 @@ static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = fa
     }
 }
 
-
 static token 
 GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
 {
     token Result;
-    EatAllWhiteSpace(Tokenizer);
+    EatAllWhiteSpace(Tokenizer,true);
     
     string* TokenString;
     token_type Type;
