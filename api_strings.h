@@ -346,7 +346,6 @@ APIDEF void PrintStringToConsole(string String)
 APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
-    
         //walk back from end of string till we hit a '.'
     char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
     u32 LookBack = 1;
@@ -398,7 +397,6 @@ APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,strin
     *Extension = *ExtensionName;
     return Result;
 }
-
 
 APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,MemoryArena* Memory)
 {
@@ -457,7 +455,6 @@ APIDEF string* EnforceMinSize(string* String,u32 MinSize,MemoryArena* Memory)
 #define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
 
-
 APIDEF u32 CalculateStringLength(string* String)
 {
     u32 Length = 0;
@@ -482,7 +479,6 @@ APIDEF u32 CalculateCharLength(char* String)
     }
     return Length;
 }
-
 
 APIDEF string* AppendString(string Front,string Back,MemoryArena* Memory)
 {

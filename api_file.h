@@ -25,7 +25,7 @@ struct read_file_result
 
 struct dir_files_result
 {
-    vector Files;
+    vector Files;//files infos
 };
 
 struct file_info

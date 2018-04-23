@@ -6,7 +6,6 @@ api_vector  - public domain vector(not vectorized yet) fixed size only
 but size can grow up with a pre alloced black of memory - 
                                      no warranty implied; use at your own risk
                                      
-                                     
                                      LICENSE
   See end of file for license information.
   
@@ -41,11 +40,9 @@ static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
     Assert(UnitSize > 0);
     
     vector Result;
-    
     Result.TotalSize = StartSize * UnitSize;
     Result.UnitSize = UnitSize;
     Result.TotalCount = StartSize;
-    
     
     Result.AtIndex = 0;
     Result.StartAt = -1;
@@ -65,11 +62,7 @@ static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
     {
         Result.Count = 0;
     }
-    
-    
     Result.Base = Partition->Base;
-    
-    
     return Result;
 }
 
@@ -77,7 +70,6 @@ static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
 #define GetVectorFirst(Type,Vector) (Type*)GetVectorElement_(Vector,0)
 #define GetVectorLast(Type,Vector) (Type*)GetVectorElement_(Vector,Vector.Count)
 #define PeekVectorElement(Type,Vector) (Type*)GetVectorElement_(Vector,*Vector.Count-1)
-
 static void* GetVectorElement_(vector* Vector, u32 Index)
 {
     //TIMED_BLOCK();
