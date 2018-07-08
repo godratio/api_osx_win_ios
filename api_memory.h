@@ -137,8 +137,7 @@ GetPartitionPointer(MemoryArena Partition)
     return Result;
 }
 
-inline void*
-	(memory_index Size)
+inline void* PlatformAllocateMemory(memory_index Size)
 {
     void* Result;
 #if OSX
