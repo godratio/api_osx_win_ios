@@ -39,9 +39,8 @@ struct file_info
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 
-
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(memory_partition *Partition)
+static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -54,11 +53,15 @@ static string* BuildPathToAssets(memory_partition *Partition)
         // error
     }
     String_GetLength_String(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
+    //NOTE(RAY):Type 1 needs to be formalized later but fo rnow it means path relative to the bundle root.
+   
+        CurrentDir = AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
+    
+    return CurrentDir;
 }
 
 static dir_files_result
-OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
+OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -99,12 +102,12 @@ OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
 static read_file_result
 OSXReadEntireFile(string Path)
 {
-    read_file_result Result;
+    read_file_result Result = {0};
     FILE *File = fopen (Path.String, "r");
     if (File == NULL)
     {
-        Assert(File);
-        printf("Ray Engine Error No file found");
+        //Assert(File);
+        printf("Error No file found");
     }
     else
     {
@@ -129,8 +132,9 @@ OSXReadEntireFile(string Path)
 
 #if IOS
 #include <mach/mach_init.h>
+#include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(memory_partition *Partition)
+static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -146,7 +150,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
 }
 
 static dir_files_result
-IOSGetAllFilesInDir(string Path,memory_partition *StringMem)
+IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -401,13 +405,13 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Ty
     Result = Win32ReadEntireFile(*FinalPathToAsset);
     
 #elif OSX
-    string* AssetPath = BuildPathToAssets(Memory);
+    string* AssetPath = BuildPathToAssets(Memory,Type);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     Result = OSXReadEntireFile(*FinalPathToAsset);
     
 #elif IOS
-    string* AssetPath = BuildPathToAssets(Memory);
+    string* AssetPath = BuildPathToAssets(Memory,Type);
     string* FinalPathToAsset = AppendString(*AssetPath,*FileName,Memory);
     NullTerminate(*FinalPathToAsset);
     Result = IOSReadEntireFile(*FinalPathToAsset);

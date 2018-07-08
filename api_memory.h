@@ -138,7 +138,7 @@ GetPartitionPointer(MemoryArena Partition)
 }
 
 inline void*
-PlatformAllocateMemory(memory_index Size)
+	(memory_index Size)
 {
     void* Result;
 #if OSX
@@ -168,7 +168,7 @@ GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
 {
     memory_index AlignmentOffset = 0;
     
-    memory_index ResultPointer = (memory_index)Arena->Base + Arena->Used;
+    memory_index ResultPointer = (u64)Arena->Base + Arena->Used;
     memory_index AlignmentMask = Alignment - 1;
     if(ResultPointer & AlignmentMask)
     {
@@ -336,7 +336,8 @@ static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params Pus
 {
     //Assert Used < Size
     Assert(Partition->Used + Size <= Partition->Size)
-        void* Result;
+    
+    void* Result;
     Result = (uint8_t*)Partition->Base + Partition->Used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
