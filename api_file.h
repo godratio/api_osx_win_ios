@@ -230,7 +230,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     string* FinalPath;
     if(Type == 0)
     {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("/",Partition),Partition);
     }
     else if(Type == 1)
     {
@@ -246,7 +246,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     }
     else if(Type == 4)
     {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);
     }
     else if(Type == 5)
     {
