@@ -41,7 +41,7 @@ struct file_info
 
 
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(memory_partition *Partition)
+static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -58,7 +58,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
 }
 
 static dir_files_result
-OSXGetAllFilesInDir(string Path,memory_partition *StringMem)
+OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -401,7 +401,7 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Ty
     Result = Win32ReadEntireFile(*FinalPathToAsset);
     
 #elif OSX
-    string* AssetPath = BuildPathToAssets(Memory);
+    string* AssetPath = BuildPathToAssets(Memory,Type);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
     NullTerminate(*FinalPathToAsset);
     Result = OSXReadEntireFile(*FinalPathToAsset);
