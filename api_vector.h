@@ -29,11 +29,11 @@ struct vector
     s32 StartAt;
     u32** FreeList;
     MemoryArena* Partition;
-    u32 Pushable;
+    bool Pushable;
 };
 
 //TODO(ray):Add memory alignment options here
-static vector CreateVector(u32 StartSize,u32 UnitSize,b32 PreEmpt = false)
+static vector CreateVector(u32 StartSize, u32 UnitSize, bool PreEmpt = false)
 {
     //TIMED_BLOCK();
     Assert(StartSize > 0);
@@ -82,7 +82,7 @@ static void* GetVectorElement_(vector* Vector, u32 Index)
     return Location;
 }
 
-static void* SetVectorElement(vector* Vector, u32 ElementIndex,void* Element,b32 Copy = true)
+static void* SetVectorElement(vector* Vector, u32 ElementIndex, void* Element, bool Copy = true)
 {
     //TIMED_BLOCK();
     Assert(Vector && Element);
@@ -114,7 +114,7 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex,void* Element,b32
 }
 
 //NOTE(ray):If you use SetVectorElement Pushes will no longer work properly.
-static u32 PushVectorElement(vector* Vector, void* Element, b32 Copy = true)
+static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
 {
     //TIMED_BLOCK();
     Assert(Vector && Element);

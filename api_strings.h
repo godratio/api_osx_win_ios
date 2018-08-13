@@ -684,8 +684,8 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
             {
                 string** Temp = (string**)PushSize(Partition,sizeof(string**));
                 
-                fixed_element* Element = (fixed_element*)PushStruct(Partition,fixed_element);
-                fixed_element* SentinalElement = (fixed_element*)PushStruct(Partition,fixed_element);
+                fixed_element* Element = PushStruct(Partition, fixed_element);
+                fixed_element* SentinalElement = PushStruct(Partition, fixed_element);
                 Element->IsSentinal = false;
                 
                 *Temp = CreateStringFromLength(CurrentStart,Length,Partition);

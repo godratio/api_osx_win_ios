@@ -39,6 +39,7 @@ struct file_info
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 
+
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
@@ -53,11 +54,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
         // error
     }
     String_GetLength_String(CurrentDir);
-    //NOTE(RAY):Type 1 needs to be formalized later but fo rnow it means path relative to the bundle root.
-   
-        CurrentDir = AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
-    
-    return CurrentDir;
+    return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
 }
 
 static dir_files_result
@@ -102,12 +99,12 @@ OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 static read_file_result
 OSXReadEntireFile(string Path)
 {
-    read_file_result Result = {0};
+    read_file_result Result;
     FILE *File = fopen (Path.String, "r");
     if (File == NULL)
     {
-        //Assert(File);
-        printf("Error No file found");
+        Assert(File);
+        printf("Ray Engine Error No file found");
     }
     else
     {
@@ -132,9 +129,8 @@ OSXReadEntireFile(string Path)
 
 #if IOS
 #include <mach/mach_init.h>
-#include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+static string* BuildPathToAssets(memory_partition *Partition)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -150,7 +146,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 }
 
 static dir_files_result
-IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
+IOSGetAllFilesInDir(string Path,memory_partition *StringMem)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -234,7 +230,6 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     string* FinalPath;
     if(Type == 0)
     {
-        //root
         FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("/",Partition),Partition);
     }
     else if(Type == 1)
@@ -251,16 +246,13 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     }
     else if(Type == 4)
     {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
+        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);
     }
     else if(Type == 5)
     {
         FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
     }
-    else if(Type == 6)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);        
-    }
+
     string* CurrentDir = AllocatEmptyString(Partition);
     u32 Size = GetCurrentDirectory(0,NULL);
     PushSize(Partition,Size);
@@ -415,7 +407,7 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Ty
     Result = OSXReadEntireFile(*FinalPathToAsset);
     
 #elif IOS
-    string* AssetPath = BuildPathToAssets(Memory,Type);
+    string* AssetPath = BuildPathToAssets(Memory);
     string* FinalPathToAsset = AppendString(*AssetPath,*FileName,Memory);
     NullTerminate(*FinalPathToAsset);
     Result = IOSReadEntireFile(*FinalPathToAsset);
