@@ -780,38 +780,42 @@ APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 #include <stdarg.h>
 #include <stdio.h>
 //TODO(ray): Move this to a more proper place replace std::out
-APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString, u32 __Dummy, ...)
+APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_list list)
 {
     if (UseToggle)
     {
-        va_list List;
-        va_start(List, __Dummy);
         char TextBuffer[100];
 #if WINDOWS
-        sprintf_s(TextBuffer,100,FormatString,List);
-        OutputDebugStringA(TextBuffer);
+		vsprintf(TextBuffer,FormatString, list);
+		printf("%s",TextBuffer);
 #elif OSX
-        vsprintf(TextBuffer, FormatString, List);
+        vsprintf(TextBuffer, FormatString, list);
         printf("%s",TextBuffer);
 #endif
-        va_end(List);
     }
+
 }
 
-//TODO(Ray):Get this out of global mem space.
+APIDEF void WaitForInput()
+{
+	char buffer[2048];
+	fgets(buffer, 2048, stdin);
+}
 
 APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* FormatString,u32 _Dummy,...)
 {
     
-    PlatformOutputToConsole(UseToggle,FormatString,0,"");
+    PlatformOutputToConsole(UseToggle,FormatString,0);
     fgets(Buffer,2048,stdin);
 }
 
 APIDEF void PlatformOutput(const char* FormatString,...)
 {
     va_list List;
-    va_start(List,FormatString);
-    PlatformOutputToConsole(1,FormatString,0, List);
+	va_start(List, FormatString);
+	char TextBuffer[100];
+    PlatformOutputToConsole(true,FormatString, List);
+	va_end(List);
 }
 
 static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
@@ -827,7 +831,6 @@ static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 #elif IOS
     vsprintf(TextBuffer,format_string,list);
 #endif
-    
     string* result = CreateStringFromLiteral(TextBuffer,arena);
     va_end(list);
     return result;
