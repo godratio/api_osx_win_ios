@@ -793,7 +793,6 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
         printf("%s",TextBuffer);
 #endif
     }
-
 }
 
 APIDEF void WaitForInput()
@@ -809,12 +808,12 @@ APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* For
     fgets(Buffer,2048,stdin);
 }
 
-APIDEF void PlatformOutput(const char* FormatString,...)
+APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...)
 {
     va_list List;
 	va_start(List, FormatString);
 	char TextBuffer[100];
-    PlatformOutputToConsole(true,FormatString, List);
+    PlatformOutputToConsole(use_toggle,FormatString, List);
 	va_end(List);
 }
 
