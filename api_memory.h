@@ -107,7 +107,7 @@ struct partition_push_params
 };
 
 inline partition_push_params
-DefaultPartitionParams(void)
+DefaultPartitionParams()
 {
     partition_push_params Params;
     Params.Flags = PartitionFlag_ClearToZero;
@@ -132,8 +132,7 @@ struct temp_memory
 static void* 
 GetPartitionPointer(MemoryArena Partition)
 {
-    void* Result;
-    Result = (uint8_t*)Partition.Base + Partition.Used;
+	void * Result = (uint8_t*)Partition.Base + Partition.Used;
     return Result;
 }
 
@@ -335,9 +334,8 @@ static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params Pus
 {
     //Assert Used < Size
     Assert(Partition->Used + Size <= Partition->Size)
-    
-    void* Result;
-    Result = (uint8_t*)Partition->Base + Partition->Used;
+
+    void * Result = (uint8_t*)Partition->Base + Partition->Used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
         ClearSize(Partition, Size);
@@ -348,7 +346,7 @@ static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params Pus
 }
 
 inline partition_push_params
-NoClear(void)
+NoClear()
 {
     partition_push_params Params = DefaultPartitionParams();
     Params.Flags &= ~PartitionFlag_ClearToZero;

@@ -134,10 +134,9 @@ APIDEF string* CreateStringFromLiteral(char* String,MemoryArena* Memory)
     Result->Length = 0;
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr;
-    while (*At)
+	while (*At)
     {
-        StringPtr = (char*)PushSize(Memory,1);
+        char * StringPtr = (char*)PushSize(Memory,1);
         *StringPtr = *At;
         Result->Length++;
         At++;
@@ -583,8 +582,7 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
     char* At = Source.String;
     char* Start  = At;
     b32 HasLastString = false;
-    string* StringStart;
-    u32 CharIndex = 0;
+	u32 CharIndex = 0;
     while(*At++ && Source.Length > CharIndex)
     {
         HasLastString = true;
@@ -633,7 +631,7 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
         {
             
             Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
-            StringStart = Result.Strings;
+            string * StringStart = Result.Strings;
         }
         else 
         {
@@ -764,8 +762,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
 #define MAX_FORMAT_STRING_SIZE 500
 APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 {
-    string* Result;
-    char CharBuffer[MAX_FORMAT_STRING_SIZE];
+	char CharBuffer[MAX_FORMAT_STRING_SIZE];
 #if OSX
     sprintf(CharBuffer, StringBuffer);
 #elif IOS
@@ -773,7 +770,7 @@ APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 #elif WINDOWS
     sprintf_s(CharBuffer,StringBuffer);
 #endif
-    Result = CreateStringFromLiteral(CharBuffer,StringMemory);
+    string * Result = CreateStringFromLiteral(CharBuffer,StringMemory);
     return Result;
 }
 

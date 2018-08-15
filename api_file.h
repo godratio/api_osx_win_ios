@@ -15,25 +15,26 @@ api_file  - public domain file handling -
 #include "api_memory.h"
 
 static char* DataDir = "/../../data/";
+
 //#include <stdio.h>
 //#include <iostream>
 struct read_file_result
 {
-    s32 ContentSize;
-    void* Content;
+	s32 ContentSize;
+	void* Content;
 };
 
 struct dir_files_result
 {
-    vector Files;//files infos
+	vector Files;//files infos
 };
 
 struct file_info
 {
-    void* File;
-    string* Name;
-    memory_index FileSize;
-    u32 FileCount;
+	void* File;
+	string* Name;
+	memory_index FileSize;
+	u32 FileCount;
 };
 
 #if OSX
@@ -45,13 +46,13 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    //TODO(ray):Verify this is big enough.
+//TODO(ray):Verify this is big enough.
     u32 DirMaxSize = 1000;
     string* CurrentDir = AllocatEmptyString(Partition);
     PushSize(Partition,DirMaxSize);
     if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir->String, DirMaxSize))
     {
-        // error
+// error
     }
     String_GetLength_String(CurrentDir);
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
@@ -134,7 +135,7 @@ static string* BuildPathToAssets(memory_partition *Partition)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    //TODO(ray):Verify this is big enough.
+//TODO(ray):Verify this is big enough.
     u32 DirMaxSize = 1000;
     string* CurrentDir = AllocatEmptyString(Partition);
     PushSize(Partition,DirMaxSize);
@@ -216,190 +217,190 @@ IOSReadEntireFile(string Path)
 
 enum directory_type
 {
-    Directory_Models,
-    Directory_Materials,    
-    Directory_Shaders,
-    Directory_Textures,
-    Directory_Sounds,
-    Directory_Fonts
+	Directory_Models,
+	Directory_Materials,
+	Directory_Shaders,
+	Directory_Textures,
+	Directory_Sounds,
+	Directory_Fonts
 };
 
-static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
 {
-    string* DataPath = CreateStringFromLiteral(DataDir,Partition);
-    string* FinalPath;
-    if(Type == 0)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("/",Partition),Partition);
-    }
-    else if(Type == 1)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("material/",Partition),Partition);
-    }
-    else if(Type == 2)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("shaders/",Partition),Partition);
-    }
-    else if(Type == 3)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
-    }
-    else if(Type == 4)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("models/",Partition),Partition);
-    }
-    else if(Type == 5)
-    {
-        FinalPath = AppendString(*DataPath,*CreateStringFromLiteral("textures/",Partition),Partition);
-    }
+	string* DataPath = CreateStringFromLiteral(DataDir, Partition);
+	string* FinalPath;
+	if (Type == 0)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("/", Partition), Partition);
+	}
+	else if (Type == 1)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("material/", Partition), Partition);
+	}
+	else if (Type == 2)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("shaders/", Partition), Partition);
+	}
+	else if (Type == 3)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("textures/", Partition), Partition);
+	}
+	else if (Type == 4)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("models/", Partition), Partition);
+	}
+	else if (Type == 5)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("textures/", Partition), Partition);
+	}
 
-    string* CurrentDir = AllocatEmptyString(Partition);
-    u32 Size = GetCurrentDirectory(0,NULL);
-    PushSize(Partition,Size);
-    GetCurrentDirectory(Size,CurrentDir->String);
-    CurrentDir->Length = Size;
-    {
-        //TODO(ray):Some error handling.
-    }
-    return AppendString(*CurrentDir,*FinalPath,Partition);;
+	string* CurrentDir = AllocatEmptyString(Partition);
+	u32 Size = GetCurrentDirectory(0,NULL);
+	PushSize(Partition,Size);
+	GetCurrentDirectory(Size, CurrentDir->String);
+	CurrentDir->Length = Size;
+	{
+		//TODO(ray):Some error handling.
+	}
+	return AppendString(*CurrentDir, *FinalPath, Partition);;
 }
 
 static dir_files_result
-Win32GetAllFilesInDir(string Path,MemoryArena *StringMem)
+Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 {
-    dir_files_result Result;
-    
-    char* WildCard = "\\*";
-    string* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard,StringMem), StringMem);
-    
-    Result.Files = CreateVector(1000,sizeof(file_info));
-    WIN32_FIND_DATA ffd;
-    TCHAR szDir[MAX_PATH];
-    HANDLE hFind = INVALID_HANDLE_VALUE;
-    LARGE_INTEGER filesize;
-    
-    hFind = FindFirstFile(WildCardPath->String, &ffd);
-    
-    if (INVALID_HANDLE_VALUE == hFind)
-    {
-        return Result;
-    }
-    
-    do
-    {
-        if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        {
-            //_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
-        }
-        else
-        {
-            filesize.LowPart = ffd.nFileSizeLow;
-            filesize.HighPart = ffd.nFileSizeHigh;
-            
-            file_info Info;
-            Info.Name = CreateStringFromLiteral(ffd.cFileName,StringMem);// ffd.cFileName;
-            PushVectorElement(&Result.Files, &Info);
-            
-            //_tprintf(TEXT("  %s   %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
-        }
-    } while (FindNextFile(hFind, &ffd) != 0);
-    return Result;
+	dir_files_result Result;
+
+	char* WildCard = "\\*";
+	string* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard, StringMem), StringMem);
+
+	Result.Files = CreateVector(1000, sizeof(file_info));
+	WIN32_FIND_DATA ffd;
+	TCHAR szDir[MAX_PATH];
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	LARGE_INTEGER filesize;
+
+	hFind = FindFirstFile(WildCardPath->String, &ffd);
+
+	if (INVALID_HANDLE_VALUE == hFind)
+	{
+		return Result;
+	}
+
+	do
+	{
+		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			//_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
+		}
+		else
+		{
+			filesize.LowPart = ffd.nFileSizeLow;
+			filesize.HighPart = ffd.nFileSizeHigh;
+
+			file_info Info;
+			Info.Name = CreateStringFromLiteral(ffd.cFileName, StringMem);// ffd.cFileName;
+			PushVectorElement(&Result.Files, &Info);
+
+			//_tprintf(TEXT("  %s   %ld bytes\n"), ffd.cFileName, filesize.QuadPart);
+		}
+	}
+	while (FindNextFile(hFind, &ffd) != 0);
+	return Result;
 }
 
 static read_file_result
 Win32ReadEntireFile(string Path)
 {
-    //Assert(Path);
-    read_file_result Result = {};
-    
-    HANDLE File;
-    File = CreateFileA(
-        Path.String,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        0,
-        OPEN_EXISTING,
-        0,
-        0
-        );
-    
-    if(File != INVALID_HANDLE_VALUE)
-    {
-        LARGE_INTEGER FileSize;
-        if(GetFileSizeEx(
-            File,
-            &FileSize
-            ))
-        {
-            DWORD SizeResult;
-            Result.Content = VirtualAlloc(
-                0,
-                FileSize.QuadPart,
-                MEM_COMMIT | MEM_RESERVE,
-                PAGE_READWRITE
-                );
-            if(Result.Content)
-            {
-                if(ReadFile(
-                    File,
-                    Result.Content,
-                    FileSize.QuadPart,
-                    &SizeResult,
-                    0
-                    ))
-                {
-                    Result.ContentSize = FileSize.QuadPart;
-                }
-                else
-                {
-                    //TODO(ray):logging
-                }
-            }
-            else
-            {
-                //TODO(ray):logging
-                Win32DeAllocateMemory(Result.Content,Result.ContentSize);
-            }
-        }
-        else
-        {
-            //TODO(ray):logging
-        }
-    }
-    else
-    {
-        //TODO(ray):logging
-        s32 ErrorCode = GetLastError();
-        OutputDebugString("INVALIDHANDLE");
-    }
-    CloseHandle(File);
-    return Result;
+	//Assert(Path);
+	read_file_result Result = {};
+
+	HANDLE File = CreateFileA(
+		Path.String,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		nullptr,
+		OPEN_EXISTING,
+		0,
+		nullptr
+	);
+
+	if (File != INVALID_HANDLE_VALUE)
+	{
+		LARGE_INTEGER FileSize;
+		if (GetFileSizeEx(
+			File,
+			&FileSize
+		))
+		{
+			DWORD SizeResult;
+			Result.Content = VirtualAlloc(
+				0,
+				FileSize.QuadPart,
+				MEM_COMMIT | MEM_RESERVE,
+				PAGE_READWRITE
+			);
+			if (Result.Content)
+			{
+				if (ReadFile(
+					File,
+					Result.Content,
+					FileSize.QuadPart,
+					&SizeResult,
+					0
+				))
+				{
+					Result.ContentSize = FileSize.QuadPart;
+				}
+				else
+				{
+					//TODO(ray):logging
+				}
+			}
+			else
+			{
+				//TODO(ray):logging
+				Win32DeAllocateMemory(Result.Content, Result.ContentSize);
+			}
+		}
+		else
+		{
+			//TODO(ray):logging
+		}
+	}
+	else
+	{
+		//TODO(ray):logging
+		s32 ErrorCode = GetLastError();
+		OutputDebugString("INVALIDHANDLE");
+	}
+	CloseHandle(File);
+	return Result;
 }
 
 #endif
 
 static read_file_result PlatformReadEntireFile(string* FileName)
 {
-    read_file_result Result;
+	read_file_result Result;
 #if WINDOWS
-    Result = Win32ReadEntireFile(NullTerminate(*FileName));
+	Result = Win32ReadEntireFile(NullTerminate(*FileName));
 #elif OSX
     Result = OSXReadEntireFile(NullTerminate(*FileName));
 #elif IOS
     Result = IOSReadEntireFile(NullTerminate(*FileName));
 #endif
-    return Result;
+	return Result;
 }
 
-static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Type,MemoryArena *Memory)
+static read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 Type, MemoryArena* Memory)
 {
-    read_file_result Result;
+	read_file_result Result;
 #if WINDOWS
-    string* AssetPath = BuildPathToAssets(Memory,Type);
-    string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
-    *FinalPathToAsset = NullTerminate(*FinalPathToAsset);
-    Result = Win32ReadEntireFile(*FinalPathToAsset);
-    
+	string* AssetPath = BuildPathToAssets(Memory, Type);
+	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName->String, Memory), Memory);
+	*FinalPathToAsset = NullTerminate(*FinalPathToAsset);
+	Result = Win32ReadEntireFile(*FinalPathToAsset);
+
 #elif OSX
     string* AssetPath = BuildPathToAssets(Memory,Type);
     string* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
@@ -412,37 +413,37 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName,u32 Ty
     NullTerminate(*FinalPathToAsset);
     Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
-    return Result;
+	return Result;
 }
 
 
-static dir_files_result PlatformGetAllFilesInDir(string Path,MemoryArena *StringMem)
+static dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* StringMem)
 {
-    dir_files_result Result;
+	dir_files_result Result;
 #if WINDOWS
-    Result = Win32GetAllFilesInDir(Path, StringMem);
+	Result = Win32GetAllFilesInDir(Path, StringMem);
 #elif OSX
     Result = OSXGetAllFilesInDir(Path, StringMem);
 #elif IOS
     Result = IOSGetAllFilesInDir(Path, StringMem);
 #endif
-    return Result;
+	return Result;
 }
 
-static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type,MemoryArena *StringMem)
+static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
 {
-    dir_files_result Result;
+	dir_files_result Result;
 
-    string* Path = BuildPathToAssets(StringMem,Type);
+	string* Path = BuildPathToAssets(StringMem, Type);
 
 #if WINDOWS
-    Result = Win32GetAllFilesInDir(*Path, StringMem);
+	Result = Win32GetAllFilesInDir(*Path, StringMem);
 #elif OSX
     Result = OSXGetAllFilesInDir(*Path, StringMem);
 #elif IOS
     Result = IOSGetAllFilesInDir(*Path, StringMem);
 #endif
-    return Result;
+	return Result;
 }
 
 #define API_FILE_H
