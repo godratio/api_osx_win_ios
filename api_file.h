@@ -213,7 +213,7 @@ IOSReadEntireFile(string Path)
 #endif
 
 #if WINDOWS
-#include <windows.h>
+#include <Windows.h>
 
 enum directory_type
 {
