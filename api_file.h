@@ -27,6 +27,10 @@ struct read_file_result
 struct dir_files_result
 {
 	vector Files;//files infos
+	~dir_files_result()
+	{
+		FreeVectorMem(&Files);
+	}
 };
 
 struct file_info
@@ -217,12 +221,14 @@ IOSReadEntireFile(string Path)
 
 enum directory_type
 {
+	Directory_None,
 	Directory_Models,
 	Directory_Materials,
 	Directory_Shaders,
 	Directory_Textures,
 	Directory_Sounds,
-	Directory_Fonts
+	Directory_Fonts,
+	Directory_Lighting
 };
 
 static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
@@ -252,6 +258,10 @@ static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
 	else if (Type == 5)
 	{
 		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("textures/", Partition), Partition);
+	}
+	else if (Type == 6)
+	{
+		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("lighting/", Partition), Partition);
 	}
 
 	string* CurrentDir = AllocatEmptyString(Partition);
@@ -308,14 +318,15 @@ Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 	return Result;
 }
 
+
 static read_file_result
-Win32ReadEntireFile(string Path)
+Win32ReadEntireFile(char* path)
 {
 	//Assert(Path);
 	read_file_result Result = {};
 
 	HANDLE File = CreateFileA(
-		Path.String,
+		path,
 		GENERIC_READ,
 		FILE_SHARE_READ,
 		nullptr,
@@ -377,17 +388,118 @@ Win32ReadEntireFile(string Path)
 	return Result;
 }
 
+internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false)
+{
+	bool result = false;
+	fwrite(mem, size, 1, file);
+	if (ferror(file))
+	{
+		result = false;
+	}
+	else
+	{
+		result = true;
+	}
+
+	if(is_done)
+	{
+		fclose(file);
+	}
+	return result;
+	/*
+
+	DWORD written;
+    DWORD error;
+	bool result = false;
+	if (WriteFile(file,mem,size,&written,NULL))
+	{
+		result = true;
+	}
+	else
+	{
+        error = GetLastError();		
+	}
+
+	if(is_done)
+	{
+		error = CloseHandle(file);
+	}
+	return result = false;
+	*/
+}
+
 #endif
+
+struct PlatformFilePointer
+{
+#if WINDOWS 
+	//HANDLE file;
+	FILE* file;
+#elif IOS || OSX
+	FILE file;
+#endif
+};
+
+static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false)
+{
+#if WINDOWS 
+	if(file->file == nullptr)
+	{
+		file->file = fopen(file_name, "wb");
+		//file->file = CreateFileA(file_name, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	}
+	return Win32WriteToFile(file->file,mem, size,is_done);
+#elif IOS | OSX
+	Assert(false);
+#endif
+}
+
+static read_file_result PlatformReadEntireFile(char* FileName)
+{
+	read_file_result Result;
+#if WINDOWS
+	Result = Win32ReadEntireFile(FileName);
+#elif OSX
+	Result = OSXReadEntireFile(FileName);
+#elif IOS
+	Result = IOSReadEntireFile(FileName);
+#endif
+	return Result;
+}
 
 static read_file_result PlatformReadEntireFile(string* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
-	Result = Win32ReadEntireFile(NullTerminate(*FileName));
+	Result = Win32ReadEntireFile(NullTerminate(*FileName).String);
 #elif OSX
     Result = OSXReadEntireFile(NullTerminate(*FileName));
 #elif IOS
     Result = IOSReadEntireFile(NullTerminate(*FileName));
+#endif
+	return Result;
+}
+
+static read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory)
+{
+	read_file_result Result;
+#if WINDOWS
+	string* AssetPath = BuildPathToAssets(Memory, Type);
+	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
+	*FinalPathToAsset = NullTerminate(*FinalPathToAsset);
+	Result = Win32ReadEntireFile(FinalPathToAsset->String);
+
+#elif OSX
+	string* AssetPath = BuildPathToAssets(Memory, Type);
+	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
+	NullTerminate(*FinalPathToAsset);
+	Result = OSXReadEntireFile(*FinalPathToAsset);
+
+#elif IOS
+	string* AssetPath = BuildPathToAssets(Memory);
+	string* FinalPathToAsset = AppendString(*AssetPath, *FileName, Memory);
+	NullTerminate(*FinalPathToAsset);
+	Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
 	return Result;
 }
@@ -399,7 +511,7 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 T
 	string* AssetPath = BuildPathToAssets(Memory, Type);
 	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName->String, Memory), Memory);
 	*FinalPathToAsset = NullTerminate(*FinalPathToAsset);
-	Result = Win32ReadEntireFile(*FinalPathToAsset);
+	Result = Win32ReadEntireFile(FinalPathToAsset->String);
 
 #elif OSX
     string* AssetPath = BuildPathToAssets(Memory,Type);
@@ -415,7 +527,6 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 T
 #endif
 	return Result;
 }
-
 
 static dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* StringMem)
 {

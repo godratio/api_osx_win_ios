@@ -479,6 +479,7 @@ APIDEF u32 CalculateCharLength(char* String)
     return Length;
 }
 
+
 APIDEF string* AppendString(string Front,string Back,MemoryArena* Memory)
 {
     string *Result = PushStruct(Memory,string);

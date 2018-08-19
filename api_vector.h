@@ -30,6 +30,8 @@ struct vector
     u32** FreeList;
     MemoryArena* Partition;
     bool Pushable;
+	f32 resize_ratio = 0.5f;//0.1 10% 1 100% default is 50% or 1/2 resizing
+	b32 allow_resize = true;
 };
 
 //TODO(ray):Add memory alignment options here
@@ -114,12 +116,31 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex, void* Element, b
 }
 
 //NOTE(ray):If you use SetVectorElement Pushes will no longer work properly.
+/**
+ * \brief Push an element of a vector.  
+ * \param Vector Point to the vector to push to 
+ * \param Element One element of the type you registered when creating the vector 
+ * \param Copy Should we do a byte for byte copy?  
+ * \return returns an index into the array in the vector for the created element
+ */
 static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
 {
     //TIMED_BLOCK();
     Assert(Vector && Element);
     Assert(Vector->Pushable);
-    
+	Assert(Vector->StartAt == -1);//You must have forget to reset the vector or are trying to resize during iteration.
+
+    //TODO(Ray):Test this.
+    //check if we have space if not resize to create it.
+    if(Vector->TotalSize < Vector->UnitSize * Vector->Count + 1)
+    {
+		u32 new_size = Vector->TotalSize + (Vector->TotalSize * Vector->resize_ratio);
+		u8* temp_ptr = (u8*)Vector->Base;
+		Vector->Base = PlatformAllocateMemory(new_size);
+		memcpy(Vector->Base, (void*)temp_ptr, Vector->TotalSize);
+		Vector->TotalSize = new_size;
+    }
+
     //TODO(ray):have some protection here to make sure we are added in the right type.
     uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
     if(!Ptr)
@@ -144,6 +165,7 @@ static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
     {
         Ptr = (uint8_t*)Element;
     }
+    
     Vector->TotalSize += Vector->UnitSize;
     u32 ResultIndex = Vector->Count++;
     return ResultIndex;
@@ -228,8 +250,10 @@ static void FreeVectorMem(vector *Vector)
     if(Vector->TotalSize > 0)
     {
         ClearVector(Vector);
+		Vector->TotalSize = 0;
+		Vector->TotalCount = 0;
         PlatformDeAllocateMemory(Vector->Partition->Base,Vector->Partition->Size);
-        
+		Vector->Base = nullptr;
     }
 }
 

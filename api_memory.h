@@ -155,6 +155,7 @@ PlatformDeAllocateMemory(void* Memory, memory_index Size)
 #if OSX
     OSXDeAllocateMemory(Memory, Size);
 #elif WINDOWS
+    //TODO(Ray):Verify windows is really freeing this memory.
     Win32DeAllocateMemory(Memory,Size);
 #elif IOS
     IOSDeAllocateMemory(Memory,Size);
