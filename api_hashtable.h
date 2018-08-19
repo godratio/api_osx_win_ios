@@ -71,9 +71,21 @@ static void AddElementToHashTable(HashTable* h_table,char* key,void* element)
 	e.value_index = hash_index;
 	HashValueEntry v{};
 	v.value = element;
-	//TODO(ray):Do collision check
-	SetVectorElement(&h_table->keys, hash_index,&e);
-	SetVectorElement(&h_table->values,hash_index, &v);
+
+	HashKeyEntry* lu = GetVectorElement(HashKeyEntry, &h_table->keys, hash_index);
+	if(lu->key != nullptr)
+	{
+		//TODO(Ray):Handle collisions.
+		Assert(false);
+	}
+	else
+	{
+		//TODO(Ray):Compare if this same keyelement is already added.
+		//if yes return cant add because key already exists
+		//if no add element
+		SetVectorElement(&h_table->keys, hash_index, &e);
+		SetVectorElement(&h_table->values, hash_index, &v);
+	}
 }
 
 #define GetElementByHash(Type,table,in) (Type*)GetElementByHash_(table,in)
