@@ -1,36 +1,35 @@
 
 # API_OSX_WIN
 
-These are used/developed for a game in production.
+These are a collection of functions I have created to be used/developed for a game in production.
 The purpose and target for them is similar to the stb libs.
+Simple to integrate and easy to use.
+
 If your looking for a more complete and well tested set of functionality
 you might want to look <link>there<link> instead.
 
-The main difference is here the focus is on using platform specific api's
-to develop platform specific api's that just work and do not allocate memory
-(unless the platform is allocating behind our backs which I may or may not be 
-able to do anything about.)
 
 ## Negatives
 1. Still using some std libs.
 2. Not tested throughouly.
 3. api not stable.
-4. Way to integrate into projects not decided.
-5. Have not yet allowed to take in raw buffers for full c compatibility and easier integration into any projects.
-    5a. In other words have to use the data types provided at the moment.
+4. Steps to integrate into other projects not decided.
+5. Have not yet allowed for full c compatibility.
+    5a. To be more specific you have to use the data types provided at the moment.
 
 Most of these will evenutally be fixed any help is appreciated.
 
 ## Restrictions placed here
 
 1. Memory allocations are explicit.
-2. Single memory startup and try to maximize allocated memory resuse.
-ie not calling memory allocation functions as little as possible.
+2. Single memory startup and try to maximize allocated memory reuse.
 3. Simple as possible.
 4. Single file includes if possible
 5. Minimize the number of things user code has to do to get it to "just work"
-6. ...
 
+While what we are providing here is not sigle header libraries just quite yet.  
+We are aiming for that level of simplicity eventually.  For now its secondary to getting useable
+apis that do the job.  
 
 The following was Ripped from stb libs.  Same exact reasoning here.
 
