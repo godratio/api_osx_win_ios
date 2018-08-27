@@ -89,7 +89,7 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex, void* Element, b
     //TIMED_BLOCK();
     Assert(Vector && Element);
     Vector->Pushable = false;
-    //TODO(ray):have some protection here to make sure we are added in the right type.
+    //TODO(ray):have some protection here to make sure we added in the right type.
     void* Location = (uint8_t*)Vector->Base + (ElementIndex * Vector->UnitSize);
     uint8_t* Ptr = (uint8_t*)Location;
     if (Copy)
@@ -256,6 +256,7 @@ static void FreeVectorMem(vector *Vector)
 		Vector->Base = nullptr;
     }
 }
+
 
 #define API_VECTOR_H
 #endif
