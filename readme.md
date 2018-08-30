@@ -1,6 +1,8 @@
 
 # API_OSX_WIN
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f499a83b6046485bb8465babd2ff3e5d)](https://app.codacy.com/app/raygarner13/api_osx_win_ios?utm_source=github.com&utm_medium=referral&utm_content=godratio/api_osx_win_ios&utm_campaign=Badge_Grade_Dashboard)
+
 These are a collection of functions I have created to be used/developed for a game in production.
 The purpose and target for them is similar to the stb libs.
 Simple to integrate and easy to use.
