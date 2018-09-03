@@ -19,34 +19,11 @@ api_strings  - public domain string handling -
 #include <stdio.h>
 #include "api_memory.h"
 
-struct string
+struct YoyoAString
 {
-    u32 NullTerminated;
-    u32 Length;
-    char* String;
-};
-
-struct fixed_element
-{
-    bool IsSentinal;
-    string** Data;
-    fixed_element* Next;
-};
-
-struct strings
-{
-    string* Strings;
-    u32 StringCount;
-    u32 IteratorIndex;
-};
-
-struct fixed_element_size_list
-{
-    fixed_element* Head;
-    fixed_element* Sentinal;
-    u32 Length;
-    u32 UnitSize;
-    
+    bool null_terminated;
+    size_t length;
+    char* string;
 };
 
 api__inline b32 IsDigit(char Char)
@@ -60,103 +37,484 @@ api__inline b32 IsDigit(char Char)
 }
 
 //NOTE(ray):Assumes string is already null terminated.
-APIDEF u32 String_GetLength_String(string* String)
+APIDEF size_t YoyoAsciiStringLength(YoyoAString* s)
 {
-    u32 Length = 0;
-    char* At = String->String;
-    while(*At)
+    size_t length = 0;
+    char* at = s->string;
+    while(*at)
     {
-        Length++;
-        At++;
+        length++;
+        at++;
     }
-    String->Length = Length;
-    return Length;
+    s->length = length;
+    return length;
 }
 
-APIDEF u32 String_GetLengthSafely_String(string* String,u32 SafetyLength)
+APIDEF size_t YoyoAsciiStringLengthSafe(YoyoAString* s,size_t safe_length)
 {
-    u32 Length = 0;
-    char* At = String->String;
-    while(*At)
+    size_t length = 0;
+    char* at = s->string;
+    while(*at)
     {
-        Length++;
-        At++;
-        if(Length > SafetyLength)
+        length++;
+        at++;
+        if(length > safe_length)
         {
             break;
         }
     }
-    String->Length = Length;
-    return Length;
+    s->length = length;
+    return length;
 }
 
 //NOTE(ray):Assumes string is already null terminated.
-APIDEF u32 String_GetLength_Char(char* String)
+APIDEF size_t YoyoAsciiGetLengthChar(char* s)
 {
-    u32 Length = 0;
-    char* At = String;
-    while(*At)
+    size_t length = 0;
+    char* at = s;
+    while(*at)
     {
-        Length++;
-        At++;
+        length++;
+        at++;
     }
-    return Length;
+    return length;
 }
 
-APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength)
+//TODO(Ray):Make a way to reclaim the memory from literals created here.
+//TODO(Ray):Allow to have the option to do the length check safely.
+//NOTE(Ray):This function requires you free your own memory once your done.
+//Put here or convience not reccomended atm.
+static YoyoAString* YoyoAsciiStringAllocate(char* s)
 {
-    u32 Length = 0;
-    char* At = String;
-    while(*At)
+	uint32_t length = YoyoAsciiGetLengthChar(s);
+	void* mem = malloc(sizeof(YoyoAString) + length);//PlatformAllocateMemory(sizeof(string) + Length);
+	YoyoAString* result = (YoyoAString*)mem;
+	result->length = 0;
+	char* at = s;
+	char* start_ptr = (char*)mem + sizeof(YoyoAString);
+	char* string_ptr = (char*)mem + sizeof(YoyoAString);
+	while (*at)
+	{
+		*string_ptr = *at;
+		string_ptr++;
+		at++;
+	}
+	result->string = start_ptr;
+	result->length = length;
+	return result;
+}
+
+APIDEF size_t YoyoAsciiGetLengthCharSafely(char* s,size_t safe_length)
+{
+    size_t length = 0;
+    char* at = s;
+    while(*at)
     {
-        Length++;
-        At++;
-        if(Length > SafetyLength)
+        length++;
+        at++;
+        if(length > safe_length)
         {
             break;
         }
     }
-    return Length;
+    return length;
 }
 
-APIDEF string NullTerminate(string Source)
+APIDEF YoyoAString YoyoAsciiNullTerminate(YoyoAString s)
 {
-    char* NullTerminatePoint = Source.String + Source.Length;
-    *NullTerminatePoint = '\0';
-    Source.NullTerminated = true;
-    return Source;
+    char* null_terminate_point = s.string + s.length;
+    *null_terminate_point = '\0';
+    s.null_terminated = true;
+    return s;
 }
 
-//TODO(ray):Make a way to reclaim the memory from literals created here.
-APIDEF string* CreateStringFromLiteral(char* String,MemoryArena* Memory)
+//TODO(ray):Make a way to reclaim the memory
+APIDEF YoyoAString* YoyoAsciiStringFromChar(char* s, MemoryArena* mem)
 {
-    string* Result = (string*)PushSize(Memory,sizeof(string));
-    Result->Length = 0;
+	YoyoAString* result = (YoyoAString*)PushSize(mem, sizeof(YoyoAString));
+	result->length = 0;
+	char* at = s;
+	void* start_ptr = GetPartitionPointer(*mem);
+	while (*at)
+	{
+		char * string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+	}
+	result->string = (char*)start_ptr;
+	return result;
+}
+
+static YoyoAString* YoyoAsciiCreateStringRangedChar(char* s, char* e, MemoryArena* mem)
+{
+	YoyoAString* result = (YoyoAString*)PushSize(mem, sizeof(YoyoAString));
+	char* at = s;
+	void* start_ptr = GetPartitionPointer(*mem);
+	char* string_ptr = 0;//(char*)Memory;
+	while (*at != *e)
+	{
+		string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+	}
+	result->string = (char*)start_ptr;
+	return result;
+}
+
+APIDEF YoyoAString* YoyoAsciiStringFromCharLength(char* s, u32 end_length, MemoryArena* mem)
+{
+	YoyoAString* result = (YoyoAString*)PushSize(mem, sizeof(YoyoAString));
+
+	char* at = s;
+	void* start_ptr = GetPartitionPointer(*mem);
+	char* string_ptr = 0;//(char*)Memory;
+	u32 iterator = 0;
+	while (iterator < end_length)
+	{
+		string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+		iterator++;
+	}
+	result->string = (char*)start_ptr;
+	return result;
+}
+
+APIDEF YoyoAString* YoyoCreateStringRangedPointer(char* s, char* e, MemoryArena* mem)
+{
+	YoyoAString* result = (YoyoAString*)PushSize(mem, sizeof(YoyoAString));
+
+	char* at = s;
+	void* start_ptr = GetPartitionPointer(*mem);
+	char* string_ptr = 0;//(char*)Memory;
+	while (at != e)
+	{
+		string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+	}
+	result->string = (char*)start_ptr;
+	return result;
+}
+
+static YoyoAString* YoyoAsciiAllocatEmptyString(MemoryArena* mem)
+{
+	Assert(mem);
+	return YoyoAsciiStringFromChar("", mem);
+}
+
+
+APIDEF int YoyoAsciiStringCompare(YoyoAString a, YoyoAString b)
+{
+	if (a.null_terminated && b.null_terminated)
+	{
+		char* a_ptr = a.string;
+		char* b_ptr = b.string;
+		while (*a_ptr && *b_ptr)
+		{
+			if (*a_ptr != *b_ptr)
+				return false;
+
+			a_ptr++; b_ptr++;
+		}
+	}
+	else
+	{
+		char* a_ptr = a.string;
+		char* b_ptr = b.string;
+
+		u32 max_iterations = (a.length > b.length) ? a.length : b.length;
+		for (u32 index = 0; index < max_iterations; ++index)
+		{
+			if (*a_ptr != *b_ptr)
+				return false;
+
+			a_ptr++; b_ptr++;
+		}
+	}
+	return true;
+}
+
+APIDEF int YoyoAsciiStringCompareToChar(YoyoAString a, char* b)
+{
+	char* a_ptr = a.string;
+	char* b_ptr = b;
+
+	u32 max_iterations = a.length;
+	for (u32 index = 0; index < max_iterations; ++index)
+	{
+		//TODO(Ray):Need to check logic here for string where B is longer than A
+		if (*a_ptr != *b_ptr)
+			return false;
+		a_ptr++; b_ptr++;
+	}
+	return true;
+}
+
+APIDEF int YoyoAsciiCharCompareToChar(char* a, char* b, u32 max_iterations)
+{
+	char* a_ptr = a;
+	char* b_ptr = b;
+
+	for (u32 index = 0; index < max_iterations; ++index)
+	{
+		if (*a_ptr == '\0' || *b_ptr == '\0')break;
+		if (*a_ptr != *b_ptr)
+			return false;
+		a_ptr++; b_ptr++;
+	}
+	return true;
+}
+
+
+APIDEF YoyoAString* YoyoAsciiGetFileExtension(YoyoAString* file_name_or_path, MemoryArena *string_mem, b32 keep_extension_delimeter = false)
+{
+	Assert(file_name_or_path->length > 1)
+		//walk back from end of string till we hit a '.'
+		char* end = file_name_or_path->string + file_name_or_path->length - 1;
+	u32 look_back = 1;
+	if (keep_extension_delimeter)
+	{
+		look_back = 0;
+	}
+	u32 steps_taken = 1;
+	while (*(end - look_back) != '.')
+	{
+		--end;
+		++steps_taken;
+		if (steps_taken > MAX_FILE_EXTENSION_LENGTH)
+		{
+			//TODO(ray):Log this as an error?
+			break;
+		}
+	}
+	YoyoAString* extension_name = YoyoAsciiStringFromCharLength(end, steps_taken, string_mem);
+	return extension_name;
+}
+
+APIDEF YoyoAString* YoyoAsciiStripExtension(YoyoAString* file_name_or_path, MemoryArena *mem)
+{
+	Assert(file_name_or_path->length > 1);
+	//walk back from end of string till we hit a '.'
+	char* end = file_name_or_path->string + file_name_or_path->length - 1;
+	u32 step_count = 1;
+	while (*end != '.')
+	{
+		--end;
+		if (step_count > MAX_FILENAME_LENGTH)
+		{
+			//TODO(ray):Log this as an error?
+			break;
+		}
+	}
+	return YoyoAsciiCreateStringRangedChar(&file_name_or_path->string[0], &end[0], mem);
+}
+
+
+APIDEF YoyoAString* YoyoAsciiStripAndOutputExtension(YoyoAString* file_name_or_path, YoyoAString* ext, MemoryArena *mem, b32 keep_delimeter = false)
+{
+	Assert(file_name_or_path->length > 1)
+
+		YoyoAString* result = YoyoAsciiStripExtension(file_name_or_path, mem);
+	YoyoAString* extension_name = YoyoAsciiGetFileExtension(file_name_or_path, mem, keep_delimeter);
+	//string TerminatedExtensionName = NullTerminate(*ExtensionName);
+	*ext = *extension_name;
+	return result;
+}
+
+APIDEF YoyoAString* YoyoAsciiPadRight(YoyoAString* s, char pad_char, u32 pad_amount, MemoryArena* mem)
+{
+	//TODO(RAY):LENGTH IS WRONG
+	YoyoAString* result = PushStruct(mem, YoyoAString);
+	result->string = (char*)PushSize(mem, s->length + pad_amount);
+	result->length = pad_amount + s->length;
+	//    char* At = Result->String;
+	char* source_string = s->string;
+	//    while(*At++)
+	for (u32 string_index = 0; string_index < result->length; ++string_index)
+	{
+		char* at = result->string + string_index;
+		if (string_index > s->length - 1)
+		{
+			*at = pad_char;
+			if (string_index <= (s->length + pad_amount))
+			{
+				at++;
+				*at = '\0';
+			}
+		}
+		else
+		{
+			*at = *source_string++;
+		}
+	}
+	return result;
+}
+
+APIDEF YoyoAString* YoyoAsciiEnforceMinSize(YoyoAString* s, u32 min_size, MemoryArena* mem)
+{
+	if (s->length < min_size)
+	{
+		int Diff = min_size - s->length;
+		s = YoyoAsciiPadRight(s, ' ', Diff, mem);
+	}
+	else if (s->length > min_size)
+	{
+		u32 count = 0;
+		char* at = s->string;
+
+		while (*at++)
+		{
+			if (count < min_size + 2)
+			{
+				s->length = min_size;
+				*at = '\0';
+			}
+			count++;
+		}
+	}
+	return s;
+}
+
+#define YoyoAsciiAppendStringToChar(front,back,mem) YoyoAsciiAppendString(*YoyoAsciiStringFromChar(front,mem),back,mem)
+#define YoyoAsciiAppendCharToString(front,back,mem) YoyoAsciiAppendString(front,*YoyoAsciiStringFromChar(back,mem),mem)
+
+APIDEF YoyoAString* YoyoAsciiAppendString(YoyoAString front, YoyoAString back, MemoryArena* mem)
+{
+	YoyoAString *result = PushStruct(mem, YoyoAString);
+	void* start_ptr = GetPartitionPointer(*mem);
+	char* string_ptr;
+	char* at = front.string;
+	u32 iterations = 0;
+	while (*at && iterations < front.length)
+	{
+		string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+		iterations++;
+	}
+	at = back.string;
+	iterations = 0;
+	while (*at && iterations < back.length)
+	{
+		string_ptr = (char*)PushSize(mem, 1);
+		*string_ptr = *at;
+		result->length++;
+		at++;
+		iterations++;
+	}
+	result->string = (char*)start_ptr;
+	*result = YoyoAsciiNullTerminate(*result);
+	return result;
+}
+
+#define YoyoAppendCharToStringAndAdvace(front,back,mem) YoyoAppendStringAndAdvance(front,*YoyoAsciiStringFromChar(back,mem),mem)
+APIDEF void YoyoAppendStringAndAdvance(YoyoAString* front, YoyoAString back, MemoryArena* mem)
+{
+	u32 length = 0;
+	void* start_pointer = GetPartitionPointer(*mem);
+	char* str_ptr;
+	char* at = front->string;
+	u32 iterations = 0;
+
+	while (*at && iterations < front->length)
+	{
+		str_ptr = (char*)PushSize(mem, 1);
+		*str_ptr = *at;
+		length++;
+		at++;
+		iterations++;
+	}
+	at = back.string;
+	iterations = 0;
+
+	while (*at && iterations < back.length)
+	{
+		str_ptr = (char*)PushSize(mem, 1);
+		*str_ptr = *at;
+		length++;
+		at++;
+		iterations++;
+	}
+
+	front->string = (char*)start_pointer;
+	front->length = length;
+	*front = YoyoAsciiNullTerminate(*front);
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//TODO(ray):Make a way to reclaim the memory
+
+#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+APIDEF void AppendStringAndAdvance(YoyoAString* Front, YoyoAString Back, MemoryArena* Memory)
+{
+	u32 Length = 0;
+	void* StartPointer = GetPartitionPointer(*Memory);
+	char* StrPtr;
+	char* At = Front->string;
+	u32 Iterations = 0;
+
+	while (*At && Iterations < Front->length)
+	{
+		StrPtr = (char*)PushSize(Memory, 1);
+		*StrPtr = *At;
+		Length++;
+		At++;
+		Iterations++;
+	}
+	At = Back.string;
+	Iterations = 0;
+
+	while (*At && Iterations < Back.length)
+	{
+		StrPtr = (char*)PushSize(Memory, 1);
+		*StrPtr = *At;
+		Length++;
+		At++;
+		Iterations++;
+	}
+
+	Front->string = (char*)StartPointer;
+	Front->length = Length;
+	*Front = YoyoAsciiNullTerminate(*Front);
+}
+
+APIDEF YoyoAString* CreateStringFromLiteral(char* String,MemoryArena* Memory)
+{
+    YoyoAString* Result = (YoyoAString*)PushSize(Memory,sizeof(YoyoAString));
+    Result->length = 0;
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
 	while (*At)
     {
         char * StringPtr = (char*)PushSize(Memory,1);
         *StringPtr = *At;
-        Result->Length++;
+        Result->length++;
         At++;
     }
-    Result->String = (char*)StartPointer;
+    Result->string = (char*)StartPointer;
     return Result;
 }
 
 //TODO(Ray):Make a way to reclaim the memory from literals created here.
 //TODO(Ray):Allow to have the option to do the length check safely.
 //NOTE(Ray):This function requires you free your own memory once your done.
-APIDEF string* String_Allocate(char* String)
+APIDEF YoyoAString* String_Allocate(char* String)
 {
-    u32 Length = String_GetLength_Char(String);
-    void* Mem = PlatformAllocateMemory(sizeof(string) + Length);
-    string* Result = (string*)Mem;
-    Result->Length = 0;
+    u32 Length = YoyoAsciiGetLengthChar(String);
+    void* Mem = PlatformAllocateMemory(sizeof(YoyoAString) + Length);
+    YoyoAString* Result = (YoyoAString*)Mem;
+    Result->length = 0;
     char* At = String;
-    char* StartPointer = (char*)Mem + sizeof(string);
-    char* StringPtr = (char*)Mem + sizeof(string);
+    char* StartPointer = (char*)Mem + sizeof(YoyoAString);
+    char* StringPtr = (char*)Mem + sizeof(YoyoAString);
     while (*At)
     {
         *StringPtr = *At;
@@ -164,20 +522,20 @@ APIDEF string* String_Allocate(char* String)
 //        Result->Length++;
         At++;
     }
-    Result->String = StartPointer;
-    Result->Length = Length;
+    Result->string = StartPointer;
+    Result->length = Length;
     return Result;
 }
 
-APIDEF string* AllocatEmptyString(MemoryArena* Partition)
+APIDEF YoyoAString* AllocatEmptyString(MemoryArena* Partition)
 {
     Assert(Partition);
     return CreateStringFromLiteral("",Partition);
 }
 
-APIDEF string* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
+APIDEF YoyoAString* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
 {
-    string* Result = (string*)PushSize(Memory, sizeof(string));
+    YoyoAString* Result = (YoyoAString*)PushSize(Memory, sizeof(YoyoAString));
     
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
@@ -186,16 +544,18 @@ APIDEF string* CreateStringFromToChar(char* String,char* End, MemoryArena* Memor
     {
         StringPtr = (char*)PushSize(Memory, 1);
         *StringPtr = *At;
-        Result->Length++;
+        Result->length++;
         At++;
     }
-    Result->String = (char*)StartPointer;
+    Result->string = (char*)StartPointer;
     return Result;
 }
 
-APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
+
+//TODO(Ray):REWRITE
+APIDEF YoyoAString* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
 {
-    string* Result = (string*)PushSize(&Memory->FixedSized, sizeof(string));
+    YoyoAString* Result = (YoyoAString*)PushSize(&Memory->FixedSized, sizeof(YoyoAString));
     
     char* At = String;
     void* StartPointer = GetPartitionPointer(Memory->VariableSized);
@@ -204,60 +564,22 @@ APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* En
     {
         StringPtr = (char*)PushSize(&Memory->VariableSized, 1);
         *StringPtr = *At;
-        Result->Length++;
+        Result->length++;
         At++;
     }
     //One more for a possible null char.
     (char*)PushSize(&Memory->VariableSized, 1);
-    Result->String = (char*)StartPointer;
+    Result->string = (char*)StartPointer;
     //*Result = NullTerminate(*Result);
     return Result;
 }
 
-APIDEF string* CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory)
+APIDEF int Compare(YoyoAString A, YoyoAString B)
 {
-    string* Result = (string*)PushSize(Memory, sizeof(string));
-    
-    char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
-    while (At != End)
+    if (A.null_terminated && B.null_terminated)
     {
-        StringPtr = (char*)PushSize(Memory, 1);
-        *StringPtr = *At;
-        Result->Length++;
-        At++;
-    }
-    Result->String = (char*)StartPointer;
-    return Result;
-}
-
-APIDEF string* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory)
-{
-    string* Result = (string*)PushSize(Memory,sizeof(string));
-    
-    char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
-    u32 Iterator = 0;
-    while (Iterator < Length)
-    {
-        StringPtr = (char*)PushSize(Memory,1);
-        *StringPtr = *At;
-        Result->Length++;
-        At++;
-        Iterator++;
-    }
-    Result->String = (char*)StartPointer;
-    return Result;
-}
-
-APIDEF int Compare(string A, string B)
-{
-    if (A.NullTerminated && B.NullTerminated)
-    {
-        char* APtr = A.String;
-        char* BPtr = B.String;
+        char* APtr = A.string;
+        char* BPtr = B.string;
         while (*APtr && *BPtr)
         {
             if (*APtr != *BPtr)
@@ -268,10 +590,10 @@ APIDEF int Compare(string A, string B)
     }
     else
     {
-        char* APtr = A.String;
-        char* BPtr = B.String;
+        char* APtr = A.string;
+        char* BPtr = B.string;
         
-        u32 MaxIterations = (A.Length > B.Length) ? A.Length : B.Length;
+        u32 MaxIterations = (A.length > B.length) ? A.length : B.length;
         for(u32 Index = 0;Index < MaxIterations;++Index)
         {
             if (*APtr != *BPtr)
@@ -283,12 +605,12 @@ APIDEF int Compare(string A, string B)
     return true;
 }
 
-APIDEF int CompareStringtoChar(string A, char* B)
+APIDEF int CompareStringtoChar(YoyoAString A, char* B)
 {
-    char* APtr = A.String;
+    char* APtr = A.string;
     char* BPtr = B;
         
-    u32 MaxIterations = A.Length;
+    u32 MaxIterations = A.length;
     for(u32 Index = 0;Index < MaxIterations;++Index)
     {
 //TODO(Ray):Need to check logic here for string where B is longer than A
@@ -332,47 +654,24 @@ APIDEF b32 CompareChars(char *A, char *B)
 }
 
 //TODO(ray): Make sure this is never used in game.
-APIDEF void PrintStringToConsole(string String)
+APIDEF void PrintStringToConsole(YoyoAString String)
 {
     //for(u32 CharIndex = 0;CharIndex < String.Length;++CharIndex)
     {
         //char* Char = (String.String + CharIndex);
-        printf("%.*s", String.Length, String.String);
+        printf("%.*s", String.length, String.string);
         //std::cout << *Char;
     }
 }
 
-APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false)
-{
-    Assert(FileNameOrPathWithExtension->Length > 1)
-        //walk back from end of string till we hit a '.'
-    char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
-    u32 LookBack = 1;
-    if(KeepFileExtensionDelimiter)
-    {
-        LookBack = 0;
-    }
-    u32 StepsTaken = 1;
-    while (*(End - LookBack) != '.')
-    {
-        --End;
-        ++StepsTaken;
-        if (StepsTaken > MAX_FILE_EXTENSION_LENGTH)
-        {
-            //TODO(ray):Log this as an error?
-            break;
-        }
-    }
-    string* ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
-    return ExtensionName;
-}
 
-APIDEF string* StripExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem)
+
+APIDEF YoyoAString* StripExtension(YoyoAString* FileNameOrPathWithExtension,MemoryArena *StringMem)
 {
-    Assert(FileNameOrPathWithExtension->Length > 1)
+    Assert(FileNameOrPathWithExtension->length > 1)
     
         //walk back from end of string till we hit a '.'
-    char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
+    char* End = FileNameOrPathWithExtension->string + FileNameOrPathWithExtension->length - 1;
     u32 StepCount = 1;
     while (*End != '.')
     {
@@ -383,36 +682,36 @@ APIDEF string* StripExtension(string* FileNameOrPathWithExtension,MemoryArena *S
             break;
         }
     }
-    return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
+    return CreateStringFromToChar(&FileNameOrPathWithExtension->string[0], &End[0], StringMem);
 }
 
-APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false)
+APIDEF YoyoAString* StripAndOutputExtension(YoyoAString* FileNameOrPathWithExtension,YoyoAString* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false)
 {
-    Assert(FileNameOrPathWithExtension->Length > 1)
+    Assert(FileNameOrPathWithExtension->length > 1)
     
-        string* Result = StripExtension(FileNameOrPathWithExtension, StringMem);
-    string* ExtensionName = GetExtension(FileNameOrPathWithExtension, StringMem,KeepFileExtensionDelimeter);
+        YoyoAString* Result = StripExtension(FileNameOrPathWithExtension, StringMem);
+    YoyoAString* ExtensionName = YoyoAsciiGetFileExtension(FileNameOrPathWithExtension, StringMem,KeepFileExtensionDelimeter);
     //string TerminatedExtensionName = NullTerminate(*ExtensionName);
     *Extension = *ExtensionName;
     return Result;
 }
 
-APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,MemoryArena* Memory)
+APIDEF YoyoAString* String_PadRight(YoyoAString* String,char PadChar,u32 PadAmount,MemoryArena* Memory)
 {
 	//TODO(RAY):LENGTH IS WRONG
-    string* Result = PushStruct(Memory,string);
-	Result->String = (char*)PushSize(Memory,String->Length + PadAmount);
-    Result->Length = PadAmount + String->Length;
+    YoyoAString* Result = PushStruct(Memory,YoyoAString);
+	Result->string = (char*)PushSize(Memory,String->length + PadAmount);
+    Result->length = PadAmount + String->length;
 //    char* At = Result->String;
-    char* SourceString = String->String;
+    char* SourceString = String->string;
 //    while(*At++)
-    for(u32 StringIndex = 0;StringIndex < Result->Length;++StringIndex)
+    for(u32 StringIndex = 0;StringIndex < Result->length;++StringIndex)
     {
-        char* At = Result->String + StringIndex;   
-        if(StringIndex > String->Length - 1)
+        char* At = Result->string + StringIndex;   
+        if(StringIndex > String->length - 1)
         {
             *At = PadChar;
-            if(StringIndex <= (String->Length + PadAmount))
+            if(StringIndex <= (String->length + PadAmount))
             {
                 At++;
                 *At = '\0';
@@ -426,23 +725,23 @@ APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,MemoryA
     return Result;
 }
 
-APIDEF string* EnforceMinSize(string* String,u32 MinSize,MemoryArena* Memory)
+APIDEF YoyoAString* EnforceMinSize(YoyoAString* String,u32 MinSize,MemoryArena* Memory)
 {
-    if(String->Length < MinSize)
+    if(String->length < MinSize)
     {
-        int Diff = MinSize - String->Length;
+        int Diff = MinSize - String->length;
         String = String_PadRight(String,' ',Diff,Memory);
     }
-    else if(String->Length > MinSize)
+    else if(String->length > MinSize)
     {
         u32 Count = 0;
-        char* At = String->String;
+        char* At = String->string;
 
         while(*At++)
         {
             if(Count < MinSize + 2)
             {
-                String->Length = MinSize;
+                String->length = MinSize;
                 *At = '\0';
             }
             Count++;
@@ -454,99 +753,90 @@ APIDEF string* EnforceMinSize(string* String,u32 MinSize,MemoryArena* Memory)
 #define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
 
-APIDEF u32 CalculateStringLength(string* String)
+
+APIDEF YoyoAString* AppendString(YoyoAString Front,YoyoAString Back,MemoryArena* Memory)
 {
-    u32 Length = 0;
-    char* At = String->String;
-    while(*At)
+    YoyoAString *Result = PushStruct(Memory,YoyoAString);
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StrPtr;
+    char* At = Front.string;
+    u32 Iterations = 0;
+    while(*At && Iterations < Front.length)
     {
-        Length++;
+        StrPtr = (char*)PushSize(Memory,1);
+        *StrPtr = *At;
+        Result->length++;
         At++;
+        Iterations++;
     }
-    String->Length = Length;
-    return Length;
+    At = Back.string;
+    Iterations = 0;
+    while(*At && Iterations < Back.length)
+    {
+        StrPtr = (char*)PushSize(Memory,1);
+        *StrPtr = *At;
+        Result->length++;
+        At++;
+        Iterations++;
+    }
+    Result->string = (char*)StartPointer;
+    *Result = YoyoAsciiNullTerminate(*Result);
+    return Result;
+}
+
+
+//
+struct fixed_element
+{
+	bool IsSentinal;
+	YoyoAString** Data;
+	fixed_element* Next;
+};
+
+struct temp_string
+{
+	YoyoAString* temp_strings;
+	u32 StringCount;
+	u32 IteratorIndex;
+};
+
+struct fixed_element_size_list
+{
+	fixed_element* Head;
+	fixed_element* Sentinal;
+	u32 Length;
+	u32 UnitSize;
+
+};
+
+APIDEF u32 CalculateStringLength(YoyoAString* String)
+{
+	u32 Length = 0;
+	char* At = String->string;
+	while (*At)
+	{
+		Length++;
+		At++;
+	}
+	String->length = Length;
+	return Length;
 }
 
 APIDEF u32 CalculateCharLength(char* String)
 {
-    u32 Length = 0;
-    char* At = String;
-    while(*At)
-    {
-        Length++;
-        At++;
-    }
-    return Length;
+	u32 Length = 0;
+	char* At = String;
+	while (*At)
+	{
+		Length++;
+		At++;
+	}
+	return Length;
 }
 
-
-APIDEF string* AppendString(string Front,string Back,MemoryArena* Memory)
+APIDEF YoyoAString* ElementIterator(fixed_element_size_list *Array)
 {
-    string *Result = PushStruct(Memory,string);
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StrPtr;
-    char* At = Front.String;
-    u32 Iterations = 0;
-    while(*At && Iterations < Front.Length)
-    {
-        StrPtr = (char*)PushSize(Memory,1);
-        *StrPtr = *At;
-        Result->Length++;
-        At++;
-        Iterations++;
-    }
-    At = Back.String;
-    Iterations = 0;
-    while(*At && Iterations < Back.Length)
-    {
-        StrPtr = (char*)PushSize(Memory,1);
-        *StrPtr = *At;
-        Result->Length++;
-        At++;
-        Iterations++;
-    }
-    Result->String = (char*)StartPointer;
-    *Result = NullTerminate(*Result);
-    return Result;
-}
-
-#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
-APIDEF void AppendStringAndAdvance(string* Front,string Back,MemoryArena* Memory)
-{
-    u32 Length = 0;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StrPtr;
-    char* At = Front->String;
-    u32 Iterations = 0;
-
-    while(*At && Iterations < Front->Length)
-    {
-        StrPtr = (char*)PushSize(Memory,1);
-        *StrPtr = *At;
-        Length++;
-        At++;
-        Iterations++;
-    }
-    At = Back.String;
-    Iterations = 0;
-
-    while(*At && Iterations < Back.Length)
-    {
-        StrPtr = (char*)PushSize(Memory,1);
-        *StrPtr = *At;
-        Length++;
-        At++;
-        Iterations++;
-    }
-
-    Front->String = (char*)StartPointer;
-    Front->Length = Length;
-    *Front = NullTerminate(*Front);
-}
-
-APIDEF string* ElementIterator(fixed_element_size_list *Array)
-{
-    string* Result;
+    YoyoAString* Result;
     
     if(Array->Head->IsSentinal)
     {
@@ -570,21 +860,21 @@ APIDEF string* ElementIterator(fixed_element_size_list *Array)
 }
 #include "api_tokenizer.h"
 
-APIDEF string* GetFromStringsByIndex(strings Strings, u32 Index)
+APIDEF YoyoAString* GetFromStringsByIndex(temp_string Strings, u32 Index)
 {
     Assert(Strings.StringCount > Index)
-        return (Strings.Strings + Index);
+        return (Strings.temp_strings + Index);
 }
 
-APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory)
+APIDEF temp_string API_String_Split(YoyoAString Source,char* Separator,duel_memory_partition* Memory)
 {
-    strings Result = {0};
-    Source = NullTerminate(Source);
-    char* At = Source.String;
+    temp_string Result = {0};
+    Source = YoyoAsciiNullTerminate(Source);
+    char* At = Source.string;
     char* Start  = At;
     b32 HasLastString = false;
 	u32 CharIndex = 0;
-    while(*At++ && Source.Length > CharIndex)
+    while(*At++ && Source.length > CharIndex)
     {
         HasLastString = true;
         if(*At == *Separator)
@@ -601,7 +891,7 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
             }
             if(Result.StringCount == 0)
             {
-                Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);;
+                Result.temp_strings = API_CreateStringFromToPointer_WithSplitMem(Start, At++, Memory);;
             }
             else
             {
@@ -631,22 +921,22 @@ APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partit
         if (Result.StringCount == 0)
         {
             
-            Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
-            string * StringStart = Result.Strings;
+            Result.temp_strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+            YoyoAString * StringStart = Result.temp_strings;
         }
         else 
         {
-            string* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+            YoyoAString* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
         }
         Result.StringCount++;
     }
     return Result;
 }
 
-APIDEF string* API_String_Iterator(strings* StringArray)
+APIDEF YoyoAString* API_String_Iterator(temp_string* StringArray)
 {
     Assert(StringArray->StringCount > 0)
-        Assert(StringArray->Strings)
+        Assert(StringArray->temp_strings)
     
         if(StringArray->IteratorIndex > StringArray->StringCount - 1)
     {
@@ -654,7 +944,7 @@ APIDEF string* API_String_Iterator(strings* StringArray)
         return 0;
     }
     else{
-        string* Result = StringArray->Strings + StringArray->IteratorIndex;
+        YoyoAString* Result = StringArray->temp_strings + StringArray->IteratorIndex;
         StringArray->IteratorIndex++;
         return Result;
     }
@@ -664,30 +954,30 @@ APIDEF string* API_String_Iterator(strings* StringArray)
 //TODO(ray): Old function can do this much better.  REDO THIS!
 //TODO(ray): This will fail in the case there is no seperator present in the string.
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
-APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false)
+APIDEF fixed_element_size_list SplitString(YoyoAString Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false)
 {
     
     fixed_element_size_list Result = {0};
-    Result.UnitSize = sizeof(string);
+    Result.UnitSize = sizeof(YoyoAString);
     
-    char* At = Source.String;
-    char* CurrentStart = Source.String;
+    char* At = Source.string;
+    char* CurrentStart = Source.string;
     u32 Length = 0;
     u32 StringIndex = 0;
-    while(*At && StringIndex < Source.Length)
+    while(*At && StringIndex < Source.length)
     {
         if(*Separator == *At)
         {
             
             if(Result.Length == 0)
             {
-                string** Temp = (string**)PushSize(Partition,sizeof(string**));
+                YoyoAString** Temp = (YoyoAString**)PushSize(Partition,sizeof(YoyoAString**));
                 
                 fixed_element* Element = PushStruct(Partition, fixed_element);
                 fixed_element* SentinalElement = PushStruct(Partition, fixed_element);
                 Element->IsSentinal = false;
                 
-                *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+                *Temp = YoyoAsciiStringFromCharLength(CurrentStart,Length,Partition);
                 CurrentStart = At + 1;
                 At++;//move past the separator
                 StringIndex++;
@@ -701,9 +991,9 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
             }
             else
             {
-                string** Temp = (string**)PushSize(Partition,sizeof(string**));
+                YoyoAString** Temp = (YoyoAString**)PushSize(Partition,sizeof(YoyoAString**));
                 fixed_element* Element = (fixed_element*)PushStruct(Partition,fixed_element);
-                *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+                *Temp = YoyoAsciiStringFromCharLength(CurrentStart,Length,Partition);
                 Element->IsSentinal = false;
                 
                 CurrentStart = At+1;
@@ -726,7 +1016,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
     }
     if(SeparatorIsNotLastChar)
     {
-        string** Temp = (string**)PushSize(Partition,sizeof(string**));
+        YoyoAString** Temp = (YoyoAString**)PushSize(Partition,sizeof(YoyoAString**));
         fixed_element* Element = (fixed_element*)PushStruct(Partition,fixed_element);
         Element->IsSentinal = false;
         
@@ -735,7 +1025,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
             fixed_element* SentinalElement = (fixed_element*)PushStruct(Partition,fixed_element);
             Element->IsSentinal = false;
             
-            *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+            *Temp = YoyoAsciiStringFromCharLength(CurrentStart,Length,Partition);
             
             SentinalElement->IsSentinal = true;
             Result.Sentinal = SentinalElement;
@@ -746,7 +1036,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
         }
         else
         {
-            *Temp = CreateStringFromLength(CurrentStart,Length,Partition);
+            *Temp = YoyoAsciiStringFromCharLength(CurrentStart,Length,Partition);
             Element->Data = Temp;
             
             Result.Head = Result.Head->Next;
@@ -761,7 +1051,7 @@ APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryA
 //TODO(RAY):THIS IS GARBAGE USELESS what was I thinking.
 //need to have most of these functions easy to format strings.
 #define MAX_FORMAT_STRING_SIZE 500
-APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
+APIDEF YoyoAString* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 {
 	char CharBuffer[MAX_FORMAT_STRING_SIZE];
 #if OSX
@@ -771,7 +1061,7 @@ APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 #elif WINDOWS
     sprintf_s(CharBuffer,StringBuffer);
 #endif
-    string * Result = CreateStringFromLiteral(CharBuffer,StringMemory);
+    YoyoAString * Result = CreateStringFromLiteral(CharBuffer,StringMemory);
     return Result;
 }
 
@@ -815,7 +1105,7 @@ APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...)
 	va_end(List);
 }
 
-static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
+static YoyoAString* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 {
     
     va_list list;
@@ -828,7 +1118,7 @@ static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 #elif IOS
     vsprintf(TextBuffer,format_string,list);
 #endif
-    string* result = CreateStringFromLiteral(TextBuffer,arena);
+    YoyoAString* result = CreateStringFromLiteral(TextBuffer,arena);
     va_end(list);
     return result;
 }

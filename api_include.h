@@ -11,21 +11,27 @@
 #ifdef API_STRING_STATIC
 #define APIDEF static
 #else
+
 #ifdef __cplusplus
 #define APIDEF extern "C"
 #else
 #define APIDEF extern
 #endif
+
 #endif
 
 #ifndef _MSC_VER
+
 #ifdef __cplusplus
 #define api__inline inline
 #else
 #define api__inline
 #endif
+
 #else
+
 #define api__inline __forceinline
+
 #endif
 
 enum var_type

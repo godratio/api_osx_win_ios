@@ -16,15 +16,15 @@ char* NewLineText = "\n";
 char* CTypeCharPtrText = "char*";
 char* EqualsText = "=";
 
-APIDEF var_type GetTypeForString(string* String)
+APIDEF var_type GetTypeForString(YoyoAString* String)
 {
     return var_type_string;
 }
 
-APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition)
+APIDEF YoyoAString* GetStringForType(var_type VarType,MemoryArena* StringPartition)
 {
 
-    string* Result;
+    YoyoAString* Result;
     switch(VarType)
     {
         case var_type_string:
@@ -36,36 +36,36 @@ APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition)
     
 }
 
-APIDEF void StartBlock(string* StringToUse,MemoryArena* StringPartition)
+APIDEF void StartBlock(YoyoAString* StringToUse,MemoryArena* StringPartition)
 {
     AppendCharToStringAndAdvace(StringToUse, NewLineText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, OpenBraceText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, NewLineText , StringPartition);
 }
 
-APIDEF void EndBlock(string* StringToUse,MemoryArena* StringPartition)
+APIDEF void EndBlock(YoyoAString* StringToUse,MemoryArena* StringPartition)
 {
     AppendCharToStringAndAdvace(StringToUse, CloseBraceText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, NewLineText, StringPartition);
 }
 // 
-APIDEF void DeclareAndAssignVariable(string* StringToUse,string* VarName, string* Value,MemoryArena* StringPartition)
+APIDEF void DeclareAndAssignVariable(YoyoAString* StringToUse,YoyoAString* VarName, YoyoAString* Value,MemoryArena* StringPartition)
 {
 
     var_type VarType = GetTypeForString(Value);
 //    string* 
     AppendCharToStringAndAdvace(StringToUse, CTypeCharPtrText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, WhiteSpaceText, StringPartition);
-    AppendCharToStringAndAdvace(StringToUse, VarName->String , StringPartition);
+    AppendCharToStringAndAdvace(StringToUse, VarName->string , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, WhiteSpaceText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, EqualsText , StringPartition);
-    AppendCharToStringAndAdvace(StringToUse, Value->String , StringPartition);
+    AppendCharToStringAndAdvace(StringToUse, Value->string , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, SemiColonText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, NewLineText , StringPartition);
 
 }
 
-APIDEF void StartStructBlock(string* StringToUse,string StructName,MemoryArena *StringPartition)
+APIDEF void StartStructBlock(YoyoAString* StringToUse,YoyoAString StructName,MemoryArena *StringPartition)
 {
     
     AppendCharToStringAndAdvace(StringToUse, StructText , StringPartition);

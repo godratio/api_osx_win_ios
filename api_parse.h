@@ -93,7 +93,7 @@ struct float_basis
 };
 
 static b32 
-ParseBoolFromString(string Test,MemoryArena *Memory)
+ParseBoolFromString(YoyoAString Test,MemoryArena *Memory)
 {
 	b32 Result = false;
 	if (Compare(*CreateStringFromLiteral("yes", Memory), Test))
@@ -112,24 +112,24 @@ ParseBoolFromString(string Test,MemoryArena *Memory)
 }
 
 static s32
-ConvertStringToInt32(string String)
+ConvertStringToInt32(YoyoAString String)
 {
     s32 Result = 0;
     b32 Started = false;
     s32 Sign = 1;    
-    for (u32 Character = 0; Character < (u32)String.Length; ++Character)
+    for (u32 Character = 0; Character < (u32)String.length; ++Character)
     {
-        if (String.String[Character] == '-' && !Started)
+        if (String.string[Character] == '-' && !Started)
         {
             Sign = -1;
             continue;
         }
-        if ((String.String[Character] == ' ' || String.String[Character] == '.' ||
-             String.String[Character] > '9' || String.String[Character] < '0'))continue;
+        if ((String.string[Character] == ' ' || String.string[Character] == '.' ||
+             String.string[Character] > '9' || String.string[Character] < '0'))continue;
         
         
         Started = true;
-        Result = ((Result * 10) + String.String[Character]) - '0';
+        Result = ((Result * 10) + String.string[Character]) - '0';
     }
     
     Result = Result * (Sign);
@@ -138,25 +138,25 @@ ConvertStringToInt32(string String)
 
 //TODO(RAY):This does not properly trunucate a float instead it just removes the decimal point
 static f32
-ConvertStringToFraction(string String, s32 *Sign)
+ConvertStringToFraction(YoyoAString String, s32 *Sign)
 {
     f32 Result = 0;
     b32 Started = false;
     
-    for (u32 Character = 0; Character < (u32)String.Length; ++Character)
+    for (u32 Character = 0; Character < (u32)String.length; ++Character)
     {
-        if (String.String[Character] == '-' && !Started)
+        if (String.string[Character] == '-' && !Started)
         {
             *Sign = -1;
             continue;
         }
-        if ((String.String[Character] == ' ' || String.String[Character] == '.' ||
-             String.String[Character] > '9' || String.String[Character] < '0'))continue;
+        if ((String.string[Character] == ' ' || String.string[Character] == '.' ||
+             String.string[Character] > '9' || String.string[Character] < '0'))continue;
         
         
         Started = true;
         
-        Result = floorf((Result * (0.1f * (String.String[Character] - '0'))));
+        Result = floorf((Result * (0.1f * (String.string[Character] - '0'))));
     }
     
     Result = Result * (*Sign);
@@ -251,7 +251,7 @@ static f64 ParseFloat(char* String)
 
 //Note(ray):The bit operations will need to be reversed for little endian machines.
 static float_basis
-GetFloatBasis(MemoryArena *Partition, string* FloatString)
+GetFloatBasis(MemoryArena *Partition, YoyoAString* FloatString)
 {
     float_basis Result = {};
     //TODO(RAY):Get the sign of the number here
@@ -364,7 +364,7 @@ GetFloatBasis(MemoryArena *Partition, string* FloatString)
     //Exponent = Bias ;
     
     fixed_element_size_list StringResult =  SplitString(*FloatString,".",Partition,true);
-    string* FloatCanidate;
+    YoyoAString* FloatCanidate;
     u32 Index = 0;
     while (FloatCanidate = ElementIterator(&StringResult))
     {

@@ -15,64 +15,64 @@ but size can grow up with a pre alloced black of memory -
 #include <stdint.h>
 
 #include "api_memory.h"
-typedef uint32_t u32;
-typedef uint32_t b32;
 
-struct vector
+struct YoyoVector
 {
-    void* Base;
-    u32 TotalSize;
-    u32 UnitSize;
-    u32 Count;
-    u32 TotalCount;
-    u32 AtIndex;
-    s32 StartAt;
-    u32** FreeList;
-    MemoryArena* Partition;
-    bool Pushable;
-	f32 resize_ratio = 0.5f;//0.1 10% 1 100% default is 50% or 1/2 resizing
-	b32 allow_resize = true;
+    void* base;
+	uint32_t total_size;
+	uint32_t max_size;
+	uint32_t unit_size;
+	uint32_t count;
+	uint32_t total_count;
+	uint32_t at_index;
+	int32_t start_at;
+	uint32_t** free_list;
+    MemoryArena* mem_arena;
+    bool pushable;
+	float resize_ratio = 0.5f;//0.1 10% 1 100% default is 50% or 1/2 resizing
+	bool allow_resize = true;
 };
 
 //TODO(ray):Add memory alignment options here
-static vector CreateVector(u32 StartSize, u32 UnitSize, bool PreEmpt = false)
+static YoyoVector YoyoInitVector(u32 start_size, u32 unit_size, bool pre_empt = false)
 {
     //TIMED_BLOCK();
-    Assert(StartSize > 0);
-    Assert(UnitSize > 0);
+    Assert(start_size > 0);
+    Assert(unit_size > 0);
     
-    vector Result;
-    Result.TotalSize = StartSize * UnitSize;
-    Result.UnitSize = UnitSize;
-    Result.TotalCount = StartSize;
+    YoyoVector result;
+	result.total_size = 0;
+	result.max_size = start_size * unit_size;
+    result.unit_size = unit_size;
+    result.total_count = start_size;
     
-    Result.AtIndex = 0;
-    Result.StartAt = -1;
-    Result.Pushable = true;
+    result.at_index = 0;
+    result.start_at = -1;
+    result.pushable = true;
     //TODO(ray): change this to get memory froma a pre allocated partition.
-    void* StartingMemory = PlatformAllocateMemory(Result.TotalSize);
-    MemoryArena* Partition = (MemoryArena*)StartingMemory;
-    AllocatePartition(Partition, Result.TotalSize,Partition+sizeof(MemoryArena*));
+    void* starting_memory = PlatformAllocateMemory(result.max_size);
+    MemoryArena* partition = (MemoryArena*)starting_memory;
+    AllocatePartition(partition, result.max_size,partition+sizeof(MemoryArena*));
     
-    Result.Partition = Partition;
-    if(PreEmpt)
+    result.mem_arena = partition;
+    if(pre_empt)
     {
-        Result.Count = StartSize;
-        PushSize_(Partition,Result.TotalSize);
+        result.count = start_size;
+        PushSize_(partition,result.max_size);
     }
     else
     {
-        Result.Count = 0;
+        result.count = 0;
     }
-    Result.Base = Partition->Base;
-    return Result;
+    result.base = partition->Base;
+    return result;
 }
 
 #define GetVectorElement(Type,Vector,Index) (Type*)GetVectorElement_(Vector,Index)
 #define GetVectorFirst(Type,Vector) (Type*)GetVectorElement_(Vector,0)
 #define GetVectorLast(Type,Vector) (Type*)GetVectorElement_(Vector,Vector.Count)
 #define PeekVectorElement(Type,Vector) (Type*)GetVectorElement_(Vector,*Vector.Count-1)
-static void* GetVectorElement_(vector* Vector, u32 Index)
+static void* GetVectorElement_(YoyoVector* Vector, u32 Index)
 {
     //TIMED_BLOCK();
     Assert(Vector);
@@ -80,21 +80,21 @@ static void* GetVectorElement_(vector* Vector, u32 Index)
     //TODO(Ray):May want to think about this. Need to give a hint to the client code.
     //Get and PushCast are almost the same.
     //Assert(Vector->Count >= Index + 1);
-    void* Location = (uint8_t*)Vector->Base + (Index * Vector->UnitSize);
+    void* Location = (uint8_t*)Vector->base + (Index * Vector->unit_size);
     return Location;
 }
 
-static void* SetVectorElement(vector* Vector, u32 ElementIndex, void* Element, bool Copy = true)
+static void* SetVectorElement(YoyoVector* Vector, u32 ElementIndex, void* Element, bool Copy = true)
 {
     //TIMED_BLOCK();
     Assert(Vector && Element);
-    Vector->Pushable = false;
+    Vector->pushable = false;
     //TODO(ray):have some protection here to make sure we are added in the right type.
-    void* Location = (uint8_t*)Vector->Base + (ElementIndex * Vector->UnitSize);
+    void* Location = (uint8_t*)Vector->base + (ElementIndex * Vector->unit_size);
     uint8_t* Ptr = (uint8_t*)Location;
     if (Copy)
     {
-        u32 ByteCount = Vector->UnitSize;
+        u32 ByteCount = Vector->unit_size;
         u32 Index = 0;
         while (Index < ByteCount)
         {
@@ -107,153 +107,146 @@ static void* SetVectorElement(vector* Vector, u32 ElementIndex, void* Element, b
         Ptr = (uint8_t*)Element;
     }
     
-    Vector->TotalSize += Vector->UnitSize;
+    Vector->total_size += Vector->unit_size;
     //TODO(Ray):This does not make much sense was added for the vertex and normal
     //setting in Mesh importer should probably not do this here and think aobut it
     //for now its fine.
-    Vector->Count++;
+    Vector->count++;
     return Location;
 }
 
 //NOTE(ray):If you use SetVectorElement Pushes will no longer work properly.
 /**
  * \brief Push an element of a vector.  
- * \param Vector Point to the vector to push to 
- * \param Element One element of the type you registered when creating the vector 
- * \param Copy Should we do a byte for byte copy?  
+ * \param vector Point to the vector to push to 
+ * \param element One element of the type you registered when creating the vector 
+ * \param copy Should we do a byte for byte copy?  
  * \return returns an index into the array in the vector for the created element
  */
-static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
+static u32 YoyoPushBack(YoyoVector* vector, void* element, bool copy = true)
 {
     //TIMED_BLOCK();
-    Assert(Vector && Element);
-    Assert(Vector->Pushable);
-	Assert(Vector->StartAt == -1);//You must have forget to reset the vector or are trying to resize during iteration.
+    Assert(vector && element);
+    Assert(vector->pushable);
+	Assert(vector->start_at == -1);//You must have forget to reset the vector or are trying to resize during iteration.
 
     //TODO(Ray):Test this.
     //check if we have space if not resize to create it.
-    if(Vector->TotalSize < Vector->UnitSize * Vector->Count + 1)
+    if(vector->total_size < vector->unit_size * vector->count + 1)
     {
-		u32 new_size = Vector->TotalSize + (Vector->TotalSize * Vector->resize_ratio);
-		u8* temp_ptr = (u8*)Vector->Base;
-		Vector->Base = PlatformAllocateMemory(new_size);
-		memcpy(Vector->Base, (void*)temp_ptr, Vector->TotalSize);
-		Vector->TotalSize = new_size;
+		u32 new_size = vector->total_size + (vector->total_size * vector->resize_ratio);
+		u8* temp_ptr = (u8*)vector->base;
+		vector->base = PlatformAllocateMemory(new_size);
+		memcpy(vector->base, (void*)temp_ptr, vector->total_size);
+		vector->total_size = new_size;
+		free(temp_ptr);
     }
 
     //TODO(ray):have some protection here to make sure we are added in the right type.
-    uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
-    if(!Ptr)
+    uint8_t *ptr = (uint8_t*)PushSize(vector->mem_arena, vector->unit_size);
+    if (copy)
     {
-        u32 NewMemSize = Vector->TotalSize*2;
-        //Get more mem
-        Ptr = (u8*)PlatformAllocateMemory(NewMemSize);
-        memcpy(Vector->Partition->Base,Ptr,NewMemSize);
-        Ptr = Ptr + Vector->TotalSize;
-    }
-    if (Copy)
-    {
-        u32 ByteCount = Vector->UnitSize;
-        u32 Index = 0;
-        while (Index < ByteCount)
+        uint32_t byte_count = vector->unit_size;
+        uint32_t index = 0;
+        while (index < byte_count)
         {
-            *Ptr++ = *((uint8_t*)Element + Index);
-            Index++;
+            *ptr++ = *((uint8_t*)element + index);
+            index++;
         }
     }
     else
     {
-        Ptr = (uint8_t*)Element;
+        ptr = (uint8_t*)element;
     }
     
-    Vector->TotalSize += Vector->UnitSize;
-    u32 ResultIndex = Vector->Count++;
-    return ResultIndex;
+    vector->total_size += vector->unit_size;
+    u32 result_index = vector->count++;
+    return result_index;
 }
 
 #define PushEmptyVectorElement(Vector) PushEmptyVectorElement_(Vector)
 #define PushAndCastEmptyVectorElement(Type,Vector) (Type*)PushEmptyVectorElement_(Vector)
-static void* PushEmptyVectorElement_(vector* Vector)
+static void* PushEmptyVectorElement_(YoyoVector* Vector)
 {
     //TIMED_BLOCK();
     //TODO(ray):have some protection here to make sure we are added in the right type.
-    uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
+    uint8_t *Ptr = (uint8_t*)PushSize(Vector->mem_arena, Vector->unit_size);
     
-    Vector->TotalSize += Vector->UnitSize;
-    Vector->Count++;
+    Vector->total_size += Vector->unit_size;
+    Vector->count++;
     return (void*)Ptr;
 }
 
 #define PopAndPeekVectorElement(Type,Vector) (Type*)PopAndPeekVectorElement_(Vector)
-static void* PopAndPeekVectorElement_(vector* Vector)
+static void* PopAndPeekVectorElement_(YoyoVector* Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    void* Result = GetVectorElement_(Vector,Vector->Count);
-    Vector->Partition->Used -= Vector->UnitSize;
-    Vector->TotalSize -= Vector->UnitSize;
-    Vector->Count--;
+    void* Result = GetVectorElement_(Vector,Vector->count);
+    Vector->mem_arena->Used -= Vector->unit_size;
+    Vector->total_size -= Vector->unit_size;
+    Vector->count--;
     return Result;
 }
 
-static void PopVectorElement(vector* Vector)
+static void PopVectorElement(YoyoVector* Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Vector->Partition->Used -= Vector->UnitSize;
-    Vector->TotalSize -= Vector->UnitSize;
-    Vector->Count--;
+    Vector->mem_arena->Used -= Vector->unit_size;
+    Vector->total_size -= Vector->unit_size;
+    Vector->count--;
 }
 
 #define IterateVector(Vector,Type) (Type*)IterateVectorElement_(Vector)
 #define IterateVectorFromIndex(Vector,Type,Index) (Type*)IterateVectorElement_(Vector,Index)
 #define IterateVectorFromToIndex(Vector,Type,Index,ToIndex) (Type*)IterateVectorElement_(Vector,Index,ToIndex)
-static void* IterateVectorElement_(vector *Vector, s32 StartAt = -1,s32 EndAt = -1)
+static void* IterateVectorElement_(YoyoVector *Vector, s32 StartAt = -1,s32 EndAt = -1)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    if (Vector->AtIndex >= Vector->Count)return 0;
-    if (StartAt >= 0 && Vector->StartAt < 0)
+    if (Vector->at_index >= Vector->count)return 0;
+    if (StartAt >= 0 && Vector->start_at < 0)
     {
-        Vector->AtIndex = StartAt;
-        Vector->StartAt = StartAt;
+        Vector->at_index = StartAt;
+        Vector->start_at = StartAt;
     }
-    else if(EndAt >= 0 && Vector->AtIndex == (u32)EndAt)
+    else if(EndAt >= 0 && Vector->at_index == (u32)EndAt)
     {
         return 0;
     }
-    return GetVectorElement_(Vector, Vector->AtIndex++);
+    return GetVectorElement_(Vector, Vector->at_index++);
 }
 
-static void ResetVectorIterator(vector *Vector)
+static void ResetVectorIterator(YoyoVector *Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Vector->AtIndex = 0;
-    Vector->StartAt = -1;
+    Vector->at_index = 0;
+    Vector->start_at = -1;
 }
 
-static void ClearVector(vector *Vector)
+static void ClearVector(YoyoVector *Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Vector->Partition->Used = 0;
-    Vector->Count = 0;
-    Vector->AtIndex = 0;
-    Vector->StartAt = -1;
-    Vector->Partition->TempCount = 0;
+    Vector->mem_arena->Used = 0;
+    Vector->count = 0;
+    Vector->at_index = 0;
+    Vector->start_at = -1;
+    Vector->mem_arena->TempCount = 0;
 }
 
-static void FreeVectorMem(vector *Vector)
+static void FreeVectorMem(YoyoVector *Vector)
 {
     //TIMED_BLOCK();
-    if(Vector->TotalSize > 0)
+    if(Vector->total_size > 0)
     {
         ClearVector(Vector);
-		Vector->TotalSize = 0;
-		Vector->TotalCount = 0;
-        PlatformDeAllocateMemory(Vector->Partition->Base,Vector->Partition->Size);
-		Vector->Base = nullptr;
+		Vector->total_size = 0;
+		Vector->total_count = 0;
+        PlatformDeAllocateMemory(Vector->mem_arena->Base,Vector->mem_arena->Size);
+		Vector->base = nullptr;
     }
 }
 

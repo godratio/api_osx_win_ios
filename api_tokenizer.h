@@ -30,7 +30,7 @@ enum token_type
 struct token
 {
     token_type Type;
-    string* Data;
+    YoyoAString* Data;
 };
 
 struct tokenizer
@@ -39,7 +39,7 @@ struct tokenizer
     char* At;
 };
 
-vector Tokens;
+YoyoVector Tokens;
 static b32 IsWhiteSpace(char At)
 {
     if (At == ' '  ||
@@ -96,7 +96,7 @@ static b32 RequireToken(token Token,token_type TokenType)
     return (Token.Type == TokenType);
 }
 
-static b32 MatchToken(token Token,string* Test)
+static b32 MatchToken(token Token,YoyoAString* Test)
 {
     if(Compare(*Token.Data,*Test))
     {
@@ -174,7 +174,7 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
     token Result;
     EatAllWhiteSpace(Tokenizer,true);
     
-    string* TokenString;
+    YoyoAString* TokenString;
     token_type Type;
     u32 TokenLength = 0;
     char *Start = Tokenizer->At;
@@ -219,7 +219,7 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-                Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+                Result.Data = YoyoCreateStringRangedPointer(Start, (Tokenizer->At), Partition);
                 Tokenizer->At++;
                 return Result;
             }break;
@@ -233,7 +233,7 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                Result.Data = YoyoCreateStringRangedPointer(Start, Tokenizer->At, Partition);
                 if(*Tokenizer->At == '\r' || *Tokenizer->At == '\n')
                 {
                     //Go back one to catch the new line or return carriage on next 
@@ -267,7 +267,7 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
     {
         ++Tokenizer->At;
     }
-    string* TokenString;
+    YoyoAString* TokenString;
     token_type Type;
     u32 TokenLength = 0;
     char *Start = Tokenizer->At;
@@ -318,7 +318,7 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                Result.Data = YoyoCreateStringRangedPointer(Start, Tokenizer->At, Partition);
                 HasAdvanced = true;
                 return Result;
             }break;
@@ -331,17 +331,17 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
 
 struct csv_field
 {
-    string Text;
+    YoyoAString Text;
 };
 
 struct csv_line
 {
-    vector Fields;
+    YoyoVector Fields;
 };
 
 struct csv_data
 {
-    vector Lines;
+    YoyoVector Lines;
 };
 
 //NOTE(ray):Output will be a vector
@@ -350,28 +350,28 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
     u32 MemSize = 10000;
-    Data.Lines = CreateVector(MemSize, sizeof(csv_line));
+    Data.Lines = YoyoInitVector(MemSize, sizeof(csv_line));
     
     b32 IsParsing = true;
     tokenizer Tokenizer = {0};
     Tokenizer.At = TextString;
-    vector TokenVector = CreateVector(MemSize, sizeof(token));
+    YoyoVector TokenVector = YoyoInitVector(MemSize, sizeof(token));
     
     //token *Token;
     u32 LineNumber = 0;
     csv_line* CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-    CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
+    CurrentLine->Fields = YoyoInitVector(FieldCount,sizeof(csv_field));
     token PrevToken;
     while(IsParsing)
     {
         token Token = GetCSVToken(&Tokenizer, &Memory);
-        PushVectorElement(&TokenVector, &Token);
+        YoyoPushBack(&TokenVector, &Token);
         
         if(Token.Type == Token_Identifier)
         {
             csv_field Field;
             Field.Text = *Token.Data;
-            PushVectorElement(&CurrentLine->Fields,&Field);
+            YoyoPushBack(&CurrentLine->Fields,&Field);
         }
         else if(Token.Type == Token_ReturnCarriage || Token.Type == Token_NewLine)
         {
@@ -379,7 +379,7 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
             {
                 ++LineNumber;
                 CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-                CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
+                CurrentLine->Fields = YoyoInitVector(FieldCount,sizeof(csv_field));
             }
         }
         
@@ -397,21 +397,21 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
 struct cfg_entry
 {
     b32 IsDef;    
-	string Key;
-	string Text;
+	YoyoAString Key;
+	YoyoAString Text;
     var_type Type;
 };
 
 struct cfg_block
 {
     b32 IsDef;
-    string Name;
-    vector Entries;
+    YoyoAString Name;
+    YoyoVector Entries;
 };
 
 struct cfg_data
 {
-	vector Blocks;
+	YoyoVector Blocks;
 };
 
 static token
@@ -462,7 +462,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-				Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+				Result.Data = YoyoCreateStringRangedPointer(Start, (Tokenizer->At), Partition);
                 Tokenizer->At++;
                 return Result;
             }break;
@@ -478,7 +478,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
                         Tokenizer->At++;
                         continue;
                     }
-                    Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                    Result.Data = YoyoCreateStringRangedPointer(Start, Tokenizer->At, Partition);
                 }
                 else
                 {
@@ -504,7 +504,7 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryAre
             if(Token.Type == Token_String)
             {
                 EntryCanidate.Text = *Token.Data;
-                PushVectorElement(&Block->Entries, &EntryCanidate);
+                YoyoPushBack(&Block->Entries, &EntryCanidate);
                 ParseConfigKeyValues(Block,Tokenizer, Memory);
             }
             else
@@ -525,11 +525,11 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryAre
 #define MAX_BLOCKS 100
 static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
 {
-    string* TaskName = NameToken.Data;
+    YoyoAString* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
     Block->Name = *TaskName;
-    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    Block->Entries = YoyoInitVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
@@ -537,12 +537,12 @@ static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken
 static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
-    string* TaskName = NameToken.Data;
+    YoyoAString* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
     Block->Name = *TaskName;
     Block->IsDef = true;
-    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    Block->Entries = YoyoInitVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
@@ -552,7 +552,7 @@ ParseConfig(MemoryArena *Memory, char* TextString)
 {
 	cfg_data Data;
 	u32 MemSize = 30;
-	Data.Blocks = CreateVector(MemSize, sizeof(cfg_block));
+	Data.Blocks = YoyoInitVector(MemSize, sizeof(cfg_block));
     
     b32 IsParsing = true;
 	tokenizer Tokenizer = { 0 };
@@ -635,7 +635,7 @@ GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition)
                 continue;
             }
             Tokenizer->At++;
-            Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+            Result.Data = YoyoCreateStringRangedPointer(Start, (Tokenizer->At), Partition);
             return Result;
         }break;
         default:
@@ -650,7 +650,7 @@ GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                Result.Data = YoyoCreateStringRangedPointer(Start, Tokenizer->At, Partition);
             }
             else
             {
@@ -713,7 +713,7 @@ GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition)
                 Tokenizer->At++;
                 continue;
             }
-            Result.Data = CreateStringFromToPointer(Start, (Tokenizer->At), Partition);
+            Result.Data = YoyoCreateStringRangedPointer(Start, (Tokenizer->At), Partition);
             Tokenizer->At++;
             return Result;
         }break;
@@ -729,7 +729,7 @@ GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition)
                     Tokenizer->At++;
                     continue;
                 }
-                Result.Data = CreateStringFromToPointer(Start, Tokenizer->At, Partition);
+                Result.Data = YoyoCreateStringRangedPointer(Start, Tokenizer->At, Partition);
             }
 //            else
             {

@@ -22,16 +22,16 @@ struct HashValueEntry
 
 struct HashTable
 {
-	vector keys;
-	vector values;
+	YoyoVector keys;
+	YoyoVector values;
 };
 
 static HashTable CreateHashTable(u32 start_count)
 {
 	HashTable result;
-	result.keys = CreateVector(start_count,sizeof(HashKeyEntry));
+	result.keys = YoyoInitVector(start_count,sizeof(HashKeyEntry));
 	result.keys.allow_resize = false;
-	result.values = CreateVector(start_count,sizeof(HashValueEntry));
+	result.values = YoyoInitVector(start_count,sizeof(HashValueEntry));
 	result.values.allow_resize = false;
 	return result;
 }
@@ -58,7 +58,7 @@ u64 UHashMod(const char *Key, unsigned TableSize)
 static u64 HashFunction(HashTable* h_table,const char* in)
 {
 	u64 result;
-	result = UHashMod(in, h_table->keys.TotalCount);
+	result = UHashMod(in, h_table->keys.total_count);
 	return result;
 }
 
