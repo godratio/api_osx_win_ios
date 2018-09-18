@@ -17,21 +17,21 @@ api_vector  - public domain  emory allocing and deallocing -
 #include <mach/mach_vm.h>
 
 static void*
-OSXAllocateMemory(memory_index Size)
+OSXAllocateMemory(memory_index size)
 {
     mach_vm_address_t address;
     kern_return_t kr;
-    mach_vm_size_t size = (mach_vm_size_t)Size;
+    mach_vm_size_t size = (mach_vm_size_t)size;
     kr = mach_vm_allocate(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
     //TODO(ray):Make sure this actually casts properly.
     return (void*)address;
 }
 
-static void OSXDeAllocateMemory(void* Memory,s64 Size)
+static void OSXDeAllocateMemory(void* Memory,s64 size)
 {
     mach_vm_address_t Address = (mach_vm_address_t)Memory;
-    //mach_vm_size_t MachSize = (mach_vm_size_t)Size;
-    mach_vm_deallocate(mach_task_self(), Address, Size);
+    //mach_vm_size_t MachSize = (mach_vm_size_t)size;
+    mach_vm_deallocate(mach_task_self(), Address, size);
 }
 
 #endif
@@ -41,11 +41,11 @@ static void OSXDeAllocateMemory(void* Memory,s64 Size)
 //#include <mach/mach_vm.h>
 
 static void*
-IOSAllocateMemory(memory_index Size)
+IOSAllocateMemory(memory_index size)
 {
     mach_vm_address_t address;
     kern_return_t kr;
-    mach_vm_size_t size = (mach_vm_size_t)Size;
+    mach_vm_size_t size = (mach_vm_size_t)size;
     
     kr = _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
     //TODO(ray):Make sure this actually casts properly.
@@ -53,12 +53,12 @@ IOSAllocateMemory(memory_index Size)
 }
 
 static void 
-IOSDeAllocateMemory(void* Memory,s64 Size)
+IOSDeAllocateMemory(void* Memory,s64 size)
 {
     mach_vm_address_t Address = (mach_vm_address_t)Memory;
-    //mach_vm_size_t MachSize = (mach_vm_size_t)Size;
-    //vm_deallocate(mach_task_self(), Address, Size);
-    _kernelrpc_mach_vm_deallocate_trap(mach_task_self(), Address, Size);
+    //mach_vm_size_t MachSize = (mach_vm_size_t)size;
+    //vm_deallocate(mach_task_self(), Address, size);
+    _kernelrpc_mach_vm_deallocate_trap(mach_task_self(), Address, size);
 }
 
 #endif
@@ -117,22 +117,22 @@ DefaultPartitionParams()
 
 struct MemoryArena
 {
-    void* Base;
-    memory_index Size;
-    u32 Used;
-    u32 TempCount;
+    void* base;
+    memory_index size;
+    u32 used;
+    u32 temp_count;
 };
 
 struct temp_memory
 {
     MemoryArena *Partition;
-    u32 Used;
+    u32 used;
 };
 
 static void* 
 GetPartitionPointer(MemoryArena Partition)
 {
-	void * Result = (uint8_t*)Partition.Base + Partition.Used;
+	void * Result = (uint8_t*)Partition.base + Partition.used;
     return Result;
 }
 
@@ -140,11 +140,11 @@ inline void* PlatformAllocateMemory(memory_index Size)
 {
     void* Result;
 #if OSX
-    Result = OSXAllocateMemory(Size);
+    Result = OSXAllocateMemory(size);
 #elif WINDOWS
     Result = Win32AllocateMemory(Size);
 #elif IOS
-    Result = IOSAllocateMemory(Size);
+    Result = IOSAllocateMemory(size);
 #endif
     return Result;
 }
@@ -153,12 +153,12 @@ inline void
 PlatformDeAllocateMemory(void* Memory, memory_index Size)
 {
 #if OSX
-    OSXDeAllocateMemory(Memory, Size);
+    OSXDeAllocateMemory(Memory, size);
 #elif WINDOWS
     //TODO(Ray):Verify windows is really freeing this memory.
     Win32DeAllocateMemory(Memory,Size);
 #elif IOS
-    IOSDeAllocateMemory(Memory,Size);
+    IOSDeAllocateMemory(Memory,size);
 #endif
 }
 
@@ -167,7 +167,7 @@ GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
 {
     memory_index AlignmentOffset = 0;
     
-    memory_index ResultPointer = (u64)Arena->Base + Arena->Used;
+    memory_index ResultPointer = (u64)Arena->base + Arena->used;
     memory_index AlignmentMask = Alignment - 1;
     if(ResultPointer & AlignmentMask)
     {
@@ -185,23 +185,23 @@ struct duel_memory_partition
 
 static void FreeDuelMemoryPartion(duel_memory_partition* Partition)
 {
-    PlatformDeAllocateMemory(Partition->FixedSized.Base,Partition->FixedSized.Size);    
-    PlatformDeAllocateMemory(Partition->VariableSized.Base,Partition->VariableSized.Size);    
+    PlatformDeAllocateMemory(Partition->FixedSized.base,Partition->FixedSized.size);    
+    PlatformDeAllocateMemory(Partition->VariableSized.base,Partition->VariableSized.size);    
 }
 
 static void FreeMemoryPartion(MemoryArena* Partition)
 {
-    PlatformDeAllocateMemory(Partition->Base,Partition->Size);    
+    PlatformDeAllocateMemory(Partition->base,Partition->size);    
 }
 
 static MemoryArena AllocateMemoryPartition(u32 Size)
 {
     MemoryArena Result;
     void* Base = PlatformAllocateMemory(Size);
-    Result.Base = Base;
-    Result.Size = Size;
-    Result.Used = 0;
-    Result.TempCount = 0;
+    Result.base = Base;
+    Result.size = Size;
+    Result.used = 0;
+    Result.temp_count = 0;
     return Result;    
 }
 
@@ -216,20 +216,20 @@ static duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
 static void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base)
 {
     //Assert
-    Partition->Base = Base;
-    Partition->Size = Size;
-    Partition->Used = 0;
-    Partition->TempCount = 0;
+    Partition->base = Base;
+    Partition->size = Size;
+    Partition->used = 0;
+    Partition->temp_count = 0;
 }
 
 static MemoryArena AllocatePartition(memory_index Size, void* Base)
 {
     MemoryArena result;
     //Assert
-    result.Base = Base;
-    result.Size = Size;
-    result.Used = 0;
-    result.TempCount = 0;
+    result.base = Base;
+    result.size = Size;
+    result.used = 0;
+    result.temp_count = 0;
     return result;
 }
 
@@ -246,9 +246,9 @@ inline MemoryArena* PlatformAllocatePartition(memory_index Size)
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
 static void ClearToZero(MemoryArena *Partition)
 {
-    for (u32 ByteIndex = 0; ByteIndex < Partition->Size; ++ByteIndex)
+    for (u32 ByteIndex = 0; ByteIndex < Partition->size; ++ByteIndex)
     {
-        uint8_t* Byte = (uint8_t*)Partition->Base + ByteIndex;
+        uint8_t* Byte = (uint8_t*)Partition->base + ByteIndex;
         *Byte = 0;
     }
 }
@@ -256,7 +256,7 @@ static void ClearToZero(MemoryArena *Partition)
 static void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero = true)
 {
     //Assert
-    Partition->Used = 0;
+    Partition->used = 0;
     if (ClearMemToZero)
     {
         ClearToZero(Partition);
@@ -267,20 +267,20 @@ static temp_memory BeginTempMemory(MemoryArena *Partition)
 {
     temp_memory Result;
     Result.Partition = Partition;
-    Partition->TempCount++;
-    Result.Used = Partition->Used;
+    Partition->temp_count++;
+    Result.used = Partition->used;
     return Result;
 }
 
 static void EndTempMemory(temp_memory TempMem)
 {
-    TempMem.Partition->Used = TempMem.Used;
-    TempMem.Partition->TempCount--;
+    TempMem.Partition->used = TempMem.used;
+    TempMem.Partition->temp_count--;
 }
 
 static void ValidateTempMemory(temp_memory TempMem)
 {
-    Assert(TempMem.Partition->TempCount < 1);
+    Assert(TempMem.Partition->temp_count < 1);
 }
 
 static b32 TestFlag(u32 Flag, u32 TestAgaist)
@@ -296,18 +296,18 @@ static void ClearSize(MemoryArena *Partition,u32 Size)
 {
     Assert(Size > 0)
         Size--;
-    if(Partition->Used < Size)
+    if(Partition->used < Size)
     {
-        Size = Partition->Used;
+        Size = Partition->used;
     }
     
-    if(Partition->Used == 0)
+    if(Partition->used == 0)
     {
         return;
     }
     else
     {
-        u8* Byte = (u8*)Partition->Base + Partition->Used;
+        u8* Byte = (u8*)Partition->base + Partition->used;
         while (Size--)
         {
             *Byte++ = 0;
@@ -333,15 +333,15 @@ static void ClearToZero(void* Mem,u32 Size)
 #define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
 static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams())
 {
-    //Assert Used < Size
-    Assert(Partition->Used + Size <= Partition->Size)
+    //Assert used < size
+    Assert(Partition->used + Size <= Partition->size)
 
-    void * Result = (uint8_t*)Partition->Base + Partition->Used;
+    void * Result = (uint8_t*)Partition->base + Partition->used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
         ClearSize(Partition, Size);
     }
-    Partition->Used = Partition->Used + Size;
+    Partition->used = Partition->used + Size;
     
     return Result;
 }

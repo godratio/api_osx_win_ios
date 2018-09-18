@@ -275,7 +275,7 @@ GetFloatBasis(MemoryArena *Partition, string* FloatString)
     
     //Example is 276 binary radix moved to past the first bit 100010100
     //1.00010100 2^8 hence the 8 to the bias.
-    //Used part is 23 bits 24 bit is explicitly assumed to be 1 as in the notation
+    //used part is 23 bits 24 bit is explicitly assumed to be 1 as in the notation
     //1101 = 1.101 x 2^3
     
     s32 BitIndex = 0;
