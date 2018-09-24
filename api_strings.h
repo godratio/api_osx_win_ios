@@ -785,7 +785,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
         char TextBuffer[100];
 #if WINDOWS
 		vsprintf(TextBuffer,FormatString, list);
-		printf("%s",TextBuffer);
+		OutputDebugString(TextBuffer);
 #elif OSX
         vsprintf(TextBuffer, FormatString, list);
         printf("%s",TextBuffer);
