@@ -102,10 +102,10 @@ OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 }
 
 static read_file_result
-OSXReadEntireFile(string Path)
+OSXReadEntireFile(char* Path)
 {
     read_file_result Result;
-    FILE *File = fopen (Path.String, "r");
+    FILE *File = fopen (Path, "r");
     if (File == NULL)
     {
         Assert(File);
@@ -130,6 +130,11 @@ OSXReadEntireFile(string Path)
     return Result;
 }
 
+static read_file_result
+OSXReadEntireFile(string Path)
+{
+    return OSXReadEntireFile(Path.String);
+}
 #endif
 
 #if IOS
@@ -450,7 +455,8 @@ static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,
 	}
 	return Win32WriteToFile(file->file,mem, size,is_done);
 #elif IOS | OSX
-	Assert(false);
+    Assert(false);
+    return false;
 #endif
 }
 
