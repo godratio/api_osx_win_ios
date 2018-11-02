@@ -17,11 +17,11 @@ api_vector  - public domain  emory allocing and deallocing -
 #include <mach/mach_vm.h>
 
 static void*
-OSXAllocateMemory(memory_index size)
+OSXAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
     kern_return_t kr;
-    mach_vm_size_t size = (mach_vm_size_t)size;
+    mach_vm_size_t size = (mach_vm_size_t)in_size;
     kr = mach_vm_allocate(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
     //TODO(ray):Make sure this actually casts properly.
     return (void*)address;
@@ -136,29 +136,29 @@ GetPartitionPointer(MemoryArena Partition)
     return Result;
 }
 
-inline void* PlatformAllocateMemory(memory_index Size)
+inline void* PlatformAllocateMemory(memory_index in_size)
 {
     void* Result;
 #if OSX
-    Result = OSXAllocateMemory(size);
+    Result = OSXAllocateMemory(in_size);
 #elif WINDOWS
-    Result = Win32AllocateMemory(Size);
+    Result = Win32AllocateMemory(in_size);
 #elif IOS
-    Result = IOSAllocateMemory(size);
+    Result = IOSAllocateMemory(in_size);
 #endif
     return Result;
 }
 
 inline void
-PlatformDeAllocateMemory(void* Memory, memory_index Size)
+PlatformDeAllocateMemory(void* Memory, memory_index in_size)
 {
 #if OSX
-    OSXDeAllocateMemory(Memory, size);
+    OSXDeAllocateMemory(Memory, in_size);
 #elif WINDOWS
     //TODO(Ray):Verify windows is really freeing this memory.
-    Win32DeAllocateMemory(Memory,Size);
+    Win32DeAllocateMemory(Memory,in_size);
 #elif IOS
-    IOSDeAllocateMemory(Memory,size);
+    IOSDeAllocateMemory(Memory,in_size);
 #endif
 }
 
