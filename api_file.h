@@ -480,9 +480,9 @@ static read_file_result PlatformReadEntireFile(string* FileName)
 #if WINDOWS
 	Result = Win32ReadEntireFile(NullTerminate(*FileName).String);
 #elif OSX
-    Result = OSXReadEntireFile(NullTerminate(*FileName));
+    Result = OSXReadEntireFile(NullTerminate(*FileName).String);
 #elif IOS
-    Result = IOSReadEntireFile(NullTerminate(*FileName));
+    Result = IOSReadEntireFile(NullTerminate(*FileName).String);
 #endif
 	return Result;
 }
