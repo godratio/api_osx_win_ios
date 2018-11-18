@@ -127,6 +127,23 @@ APIDEF string NullTerminate(string Source)
     return Source;
 }
 
+APIDEF string* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory)
+{
+    string* Result = (string*)PushSize(Memory,sizeof(string));
+    Result->Length = 0;
+    char* At = (char*)String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+	while (*At)
+    {
+        char * StringPtr = (char*)PushSize(Memory,1);
+        *StringPtr = *At;
+        Result->Length++;
+        At++;
+    }
+    Result->String = (char*)StartPointer;
+    return Result;
+}
+
 //TODO(ray):Make a way to reclaim the memory from literals created here.
 APIDEF string* CreateStringFromLiteral(char* String,MemoryArena* Memory)
 {
