@@ -64,7 +64,7 @@ static vector CreateVector(u32 StartSize, u32 UnitSize, bool PreEmpt = false)
     {
         Result.Count = 0;
     }
-    Result.Base = Partition->Base;
+    Result.Base = Partition->base;
     return Result;
 }
 
@@ -148,7 +148,7 @@ static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
         u32 NewMemSize = Vector->TotalSize*2;
         //Get more mem
         Ptr = (u8*)PlatformAllocateMemory(NewMemSize);
-        memcpy(Vector->Partition->Base,Ptr,NewMemSize);
+        memcpy(Vector->Partition->base,Ptr,NewMemSize);
         Ptr = Ptr + Vector->TotalSize;
     }
     if (Copy)
@@ -190,7 +190,7 @@ static void* PopAndPeekVectorElement_(vector* Vector)
     //TIMED_BLOCK();
     Assert(Vector);
     void* Result = GetVectorElement_(Vector,Vector->Count);
-    Vector->Partition->Used -= Vector->UnitSize;
+    Vector->Partition->used -= Vector->UnitSize;
     Vector->TotalSize -= Vector->UnitSize;
     Vector->Count--;
     return Result;
@@ -200,7 +200,7 @@ static void PopVectorElement(vector* Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Vector->Partition->Used -= Vector->UnitSize;
+    Vector->Partition->used -= Vector->UnitSize;
     Vector->TotalSize -= Vector->UnitSize;
     Vector->Count--;
 }
@@ -237,11 +237,11 @@ static void ClearVector(vector *Vector)
 {
     //TIMED_BLOCK();
     Assert(Vector);
-    Vector->Partition->Used = 0;
+    Vector->Partition->used = 0;
     Vector->Count = 0;
     Vector->AtIndex = 0;
     Vector->StartAt = -1;
-    Vector->Partition->TempCount = 0;
+    Vector->Partition->temp_count = 0;
 }
 
 static void FreeVectorMem(vector *Vector)
@@ -252,7 +252,7 @@ static void FreeVectorMem(vector *Vector)
         ClearVector(Vector);
 		Vector->TotalSize = 0;
 		Vector->TotalCount = 0;
-        PlatformDeAllocateMemory(Vector->Partition->Base,Vector->Partition->Size);
+        PlatformDeAllocateMemory(Vector->Partition->base,Vector->Partition->size);
 		Vector->Base = nullptr;
     }
 }

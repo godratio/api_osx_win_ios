@@ -41,6 +41,18 @@ struct file_info
 	u32 FileCount;
 };
 
+enum directory_type
+{
+    Directory_None,
+    Directory_Models,
+    Directory_Materials,
+    Directory_Shaders,
+    Directory_Textures,
+    Directory_Sounds,
+    Directory_Fonts,
+    Directory_Lighting
+};
+
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 
@@ -102,10 +114,10 @@ OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 }
 
 static read_file_result
-OSXReadEntireFile(string Path)
+OSXReadEntireFile(char* Path)
 {
     read_file_result Result;
-    FILE *File = fopen (Path.String, "r");
+    FILE *File = fopen (Path, "r");
     if (File == NULL)
     {
         Assert(File);
@@ -130,10 +142,16 @@ OSXReadEntireFile(string Path)
     return Result;
 }
 
+static read_file_result
+OSXReadEntireFile(string Path)
+{
+    return OSXReadEntireFile(Path.String);
+}
 #endif
 
 #if IOS
 #include <mach/mach_init.h>
+
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
@@ -190,10 +208,10 @@ IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
 }
 
 static read_file_result
-IOSReadEntireFile(string Path)
+IOSReadEntireFile(char* Path)
 {
     read_file_result Result;
-    FILE *File = fopen (Path.String, "r");
+    FILE *File = fopen (Path, "r");
     if (File == NULL)
     {
         Assert(File);
@@ -213,23 +231,16 @@ IOSReadEntireFile(string Path)
     }
     return Result;
 }
-
+static read_file_result
+IOSReadEntireFile(string Path)
+{
+    return IOSReadEntireFile(Path.String);
+}
 #endif
 
 #if WINDOWS
 #include <Windows.h>
 
-enum directory_type
-{
-	Directory_None,
-	Directory_Models,
-	Directory_Materials,
-	Directory_Shaders,
-	Directory_Textures,
-	Directory_Sounds,
-	Directory_Fonts,
-	Directory_Lighting
-};
 
 static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
 {
@@ -450,7 +461,8 @@ static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,
 	}
 	return Win32WriteToFile(file->file,mem, size,is_done);
 #elif IOS | OSX
-	Assert(false);
+    Assert(false);
+    return false;
 #endif
 }
 
@@ -473,9 +485,9 @@ static read_file_result PlatformReadEntireFile(string* FileName)
 #if WINDOWS
 	Result = Win32ReadEntireFile(NullTerminate(*FileName).String);
 #elif OSX
-    Result = OSXReadEntireFile(NullTerminate(*FileName));
+    Result = OSXReadEntireFile(NullTerminate(*FileName).String);
 #elif IOS
-    Result = IOSReadEntireFile(NullTerminate(*FileName));
+    Result = IOSReadEntireFile(NullTerminate(*FileName).String);
 #endif
 	return Result;
 }
@@ -496,8 +508,8 @@ static read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Typ
 	Result = OSXReadEntireFile(*FinalPathToAsset);
 
 #elif IOS
-	string* AssetPath = BuildPathToAssets(Memory);
-	string* FinalPathToAsset = AppendString(*AssetPath, *FileName, Memory);
+	string* AssetPath = BuildPathToAssets(Memory,Type);
+	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
 	NullTerminate(*FinalPathToAsset);
 	Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
