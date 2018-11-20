@@ -151,6 +151,7 @@ OSXReadEntireFile(string Path)
 
 #if IOS
 #include <mach/mach_init.h>
+
 //Note(ray): User app needs to include core foundations need to do something about that.
 static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
@@ -207,10 +208,10 @@ IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
 }
 
 static read_file_result
-IOSReadEntireFile(string Path)
+IOSReadEntireFile(char* Path)
 {
     read_file_result Result;
-    FILE *File = fopen (Path.String, "r");
+    FILE *File = fopen (Path, "r");
     if (File == NULL)
     {
         Assert(File);
@@ -230,7 +231,11 @@ IOSReadEntireFile(string Path)
     }
     return Result;
 }
-
+static read_file_result
+IOSReadEntireFile(string Path)
+{
+    return IOSReadEntireFile(Path.String);
+}
 #endif
 
 #if WINDOWS
@@ -503,8 +508,8 @@ static read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Typ
 	Result = OSXReadEntireFile(*FinalPathToAsset);
 
 #elif IOS
-	string* AssetPath = BuildPathToAssets(Memory);
-	string* FinalPathToAsset = AppendString(*AssetPath, *FileName, Memory);
+	string* AssetPath = BuildPathToAssets(Memory,Type);
+	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
 	NullTerminate(*FinalPathToAsset);
 	Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif

@@ -41,11 +41,11 @@ static void OSXDeAllocateMemory(void* Memory,s64 size)
 //#include <mach/mach_vm.h>
 
 static void*
-IOSAllocateMemory(memory_index size)
+IOSAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
     kern_return_t kr;
-    mach_vm_size_t size = (mach_vm_size_t)size;
+    mach_vm_size_t size = (mach_vm_size_t)in_size;
     
     kr = _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
     //TODO(ray):Make sure this actually casts properly.
