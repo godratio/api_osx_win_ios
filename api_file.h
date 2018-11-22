@@ -71,7 +71,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 // error
     }
     String_GetLength_String(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
+    return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
 static dir_files_result
@@ -116,11 +116,11 @@ OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 static read_file_result
 OSXReadEntireFile(char* Path)
 {
-    read_file_result Result;
+    read_file_result Result = {};
     FILE *File = fopen (Path, "r");
     if (File == NULL)
     {
-        Assert(File);
+        //Assert(File);
         printf("Ray Engine Error No file found");
     }
     else
@@ -165,7 +165,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     {
     }
     CalculateStringLength(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral("/", Partition),Partition);
+    return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
 static dir_files_result
@@ -399,47 +399,26 @@ Win32ReadEntireFile(char* path)
 	return Result;
 }
 
-internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false)
-{
-	bool result = false;
-	fwrite(mem, size, 1, file);
-	if (ferror(file))
-	{
-		result = false;
-	}
-	else
-	{
-		result = true;
-	}
-
-	if(is_done)
-	{
-		fclose(file);
-	}
-	return result;
-	/*
-
-	DWORD written;
-    DWORD error;
-	bool result = false;
-	if (WriteFile(file,mem,size,&written,NULL))
-	{
-		result = true;
-	}
-	else
-	{
-        error = GetLastError();		
-	}
-
-	if(is_done)
-	{
-		error = CloseHandle(file);
-	}
-	return result = false;
-	*/
-}
 
 #endif
+internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false)
+{
+    bool result = false;
+    fwrite(mem, size, 1, file);
+    if (ferror(file))
+    {
+        result = false;
+    }
+    else
+    {
+        result = true;
+    }
+    if(is_done)
+    {
+        fclose(file);
+    }
+    return result;
+}
 
 struct PlatformFilePointer
 {
@@ -447,22 +426,28 @@ struct PlatformFilePointer
 	//HANDLE file;
 	FILE* file;
 #elif IOS || OSX
-	FILE file;
+	FILE* file;
 #endif
 };
 
-static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false)
+static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false,char* options = "wb")
 {
 #if WINDOWS 
 	if(file->file == nullptr)
 	{
-		file->file = fopen(file_name, "wb");
+		file->file = fopen(file_name, options);
 		//file->file = CreateFileA(file_name, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	}
 	return Win32WriteToFile(file->file,mem, size,is_done);
 #elif IOS | OSX
-    Assert(false);
-    return false;
+
+    if(file->file == nullptr)
+    {
+        file->file = fopen(file_name, options);
+        //file->file = CreateFileA(file_name, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    }
+    return Win32WriteToFile(file->file,mem, size,is_done);
+    
 #endif
 }
 
