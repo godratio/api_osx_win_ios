@@ -97,6 +97,7 @@ Win32DeAllocateMemory(void* Memory,s64 Size)
 
 enum partition_push_flag
 {
+    PartitionFlag_None = 0x0,
     PartitionFlag_ClearToZero = 0x1,
 };
 
