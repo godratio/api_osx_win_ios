@@ -31,7 +31,7 @@ enum token_type
 struct token
 {
     token_type Type;
-    string* Data;
+    Yostr* Data;
 };
 
 struct tokenizer
@@ -42,7 +42,7 @@ struct tokenizer
 
 struct csv_field
 {
-    string Text;
+    Yostr Text;
 };
 
 struct csv_line
@@ -59,15 +59,15 @@ struct csv_data
 struct cfg_entry
 {
     b32 IsDef;
-    string Key;
-    string Text;
+    Yostr Key;
+    Yostr Text;
     var_type Type;
 };
 
 struct cfg_block
 {
     b32 IsDef;
-    string Name;
+    Yostr Name;
     vector Entries;
 };
 
@@ -94,7 +94,7 @@ b32 IsDoubleDash(char* At);
 
 b32 RequireToken(token Token,token_type TokenType);
 
-b32 MatchToken(token Token,string* Test);
+b32 MatchToken(token Token,Yostr* Test);
 
 b32 IsAlpha(char At);
 
@@ -187,7 +187,7 @@ vector Tokens;
     return (Token.Type == TokenType);
 }
 
- b32 MatchToken(token Token,string* Test)
+ b32 MatchToken(token Token,Yostr* Test)
 {
     if(Compare(*Token.Data,*Test))
     {
@@ -265,7 +265,7 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
     token Result;
     EatAllWhiteSpace(Tokenizer,true);
     
-    string* TokenString;
+    Yostr* TokenString;
     token_type Type;
     u32 TokenLength = 0;
     char *Start = Tokenizer->At;
@@ -358,7 +358,7 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
     {
         ++Tokenizer->At;
     }
-    string* TokenString;
+    Yostr* TokenString;
     token_type Type;
     u32 TokenLength = 0;
     char *Start = Tokenizer->At;
@@ -582,7 +582,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
 #define MAX_BLOCKS 100
  void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
 {
-    string* TaskName = NameToken.Data;
+    Yostr* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
     Block->Name = *TaskName;
@@ -594,7 +594,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
  void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
-    string* TaskName = NameToken.Data;
+    Yostr* TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
     Block->Name = *TaskName;

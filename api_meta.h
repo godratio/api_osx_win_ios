@@ -1,16 +1,16 @@
 #if !defined(API_META_H)
 
-APIDEF var_type GetTypeForString(string* String);
+APIDEF var_type GetTypeForString(Yostr* String);
 
-APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition);
+APIDEF Yostr* GetStringForType(var_type VarType,MemoryArena* StringPartition);
 
-APIDEF void StartBlock(string* StringToUse,MemoryArena* StringPartition);
+APIDEF void StartBlock(Yostr* StringToUse,MemoryArena* StringPartition);
 
-APIDEF void EndBlock(string* StringToUse,MemoryArena* StringPartition);
+APIDEF void EndBlock(Yostr* StringToUse,MemoryArena* StringPartition);
 
-APIDEF void DeclareAndAssignVariable(string* StringToUse,string* VarName, string* Value,MemoryArena* StringPartition);
+APIDEF void DeclareAndAssignVariable(Yostr* StringToUse,Yostr* VarName, Yostr* Value,MemoryArena* StringPartition);
 
-APIDEF void StartStructBlock(string* StringToUse,string StructName,MemoryArena *StringPartition);
+APIDEF void StartStructBlock(Yostr* StringToUse,Yostr StructName,MemoryArena *StringPartition);
 
 #ifdef YOYOIMPL
 char* WhiteSpaceText = " ";
@@ -22,15 +22,15 @@ char* NewLineText = "\n";
 char* CTypeCharPtrText = "char*";
 char* EqualsText = "=";
 
-APIDEF var_type GetTypeForString(string* String)
+APIDEF var_type GetTypeForString(Yostr* String)
 {
     return var_type_string;
 }
 
-APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition)
+APIDEF Yostr* GetStringForType(var_type VarType,MemoryArena* StringPartition)
 {
 
-    string* Result;
+    Yostr* Result;
     switch(VarType)
     {
         case var_type_string:
@@ -42,20 +42,20 @@ APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition)
     
 }
 
-APIDEF void StartBlock(string* StringToUse,MemoryArena* StringPartition)
+APIDEF void StartBlock(Yostr* StringToUse,MemoryArena* StringPartition)
 {
     AppendCharToStringAndAdvace(StringToUse, NewLineText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, OpenBraceText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, NewLineText , StringPartition);
 }
 
-APIDEF void EndBlock(string* StringToUse,MemoryArena* StringPartition)
+APIDEF void EndBlock(Yostr* StringToUse,MemoryArena* StringPartition)
 {
     AppendCharToStringAndAdvace(StringToUse, CloseBraceText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, NewLineText, StringPartition);
 }
 // 
-APIDEF void DeclareAndAssignVariable(string* StringToUse,string* VarName, string* Value,MemoryArena* StringPartition)
+APIDEF void DeclareAndAssignVariable(Yostr* StringToUse,Yostr* VarName, Yostr* Value,MemoryArena* StringPartition)
 {
 
     var_type VarType = GetTypeForString(Value);
@@ -71,7 +71,7 @@ APIDEF void DeclareAndAssignVariable(string* StringToUse,string* VarName, string
 
 }
 
-APIDEF void StartStructBlock(string* StringToUse,string StructName,MemoryArena *StringPartition)
+APIDEF void StartStructBlock(Yostr* StringToUse,Yostr StructName,MemoryArena *StringPartition)
 {
     
     AppendCharToStringAndAdvace(StringToUse, StructText , StringPartition);
