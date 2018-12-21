@@ -93,7 +93,7 @@ struct float_basis
 };
 
 static b32 
-ParseBoolFromString(string Test,MemoryArena *Memory)
+ParseBoolFromString(Yostr Test,MemoryArena *Memory)
 {
 	b32 Result = false;
 	if (Compare(*CreateStringFromLiteral("yes", Memory), Test))
@@ -112,7 +112,7 @@ ParseBoolFromString(string Test,MemoryArena *Memory)
 }
 
 static s32
-ConvertStringToInt32(string String)
+ConvertStringToInt32(Yostr String)
 {
     s32 Result = 0;
     b32 Started = false;
@@ -138,7 +138,7 @@ ConvertStringToInt32(string String)
 
 //TODO(RAY):This does not properly trunucate a float instead it just removes the decimal point
 static f32
-ConvertStringToFraction(string String, s32 *Sign)
+ConvertStringToFraction(Yostr String, s32 *Sign)
 {
     f32 Result = 0;
     b32 Started = false;
@@ -251,7 +251,7 @@ static f64 ParseFloat(char* String)
 
 //Note(ray):The bit operations will need to be reversed for little endian machines.
 static float_basis
-GetFloatBasis(MemoryArena *Partition, string* FloatString)
+GetFloatBasis(MemoryArena *Partition, Yostr* FloatString)
 {
     float_basis Result = {};
     //TODO(RAY):Get the sign of the number here
@@ -364,7 +364,7 @@ GetFloatBasis(MemoryArena *Partition, string* FloatString)
     //Exponent = Bias ;
     
     fixed_element_size_list StringResult =  SplitString(*FloatString,".",Partition,true);
-    string* FloatCanidate;
+    Yostr* FloatCanidate;
     u32 Index = 0;
     while (FloatCanidate = ElementIterator(&StringResult))
     {
