@@ -1,12 +1,18 @@
-/* ========================================================================
-   $File: $
-   $Date: $
-   $Revision: $
-   $Creator: Ray Garner $
-   ======================================================================== */
-
 #if !defined(API_META_H)
 
+APIDEF var_type GetTypeForString(string* String);
+
+APIDEF string* GetStringForType(var_type VarType,MemoryArena* StringPartition);
+
+APIDEF void StartBlock(string* StringToUse,MemoryArena* StringPartition);
+
+APIDEF void EndBlock(string* StringToUse,MemoryArena* StringPartition);
+
+APIDEF void DeclareAndAssignVariable(string* StringToUse,string* VarName, string* Value,MemoryArena* StringPartition);
+
+APIDEF void StartStructBlock(string* StringToUse,string StructName,MemoryArena *StringPartition);
+
+#ifdef YOYOIMPL
 char* WhiteSpaceText = " ";
 char* StructText = "struct";
 char* OpenBraceText = "{";
@@ -76,5 +82,6 @@ APIDEF void StartStructBlock(string* StringToUse,string StructName,MemoryArena *
     StartBlock(StringToUse,StringPartition);
 }
 
+#endif
 #define API_META_H
 #endif

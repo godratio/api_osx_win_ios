@@ -13,7 +13,7 @@ but size can grow up with a pre alloced black of memory -
 
 #if !defined(API_VECTOR_H)
 #include <stdint.h>
-
+#include <string.h>
 #include "api_memory.h"
 typedef uint32_t u32;
 typedef uint32_t b32;

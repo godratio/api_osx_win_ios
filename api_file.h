@@ -1,10 +1,10 @@
+
 /*
 author: Ray Garner
 email : raygarner13@gmail.com
-
+ 
 api_file  - public domain file handling - 
                                      no warranty implied; use at your own risk
-
                                      LICENSE
   See end of file for license information.
 */
@@ -53,12 +53,74 @@ enum directory_type
     Directory_Lighting
 };
 
+
+struct PlatformFilePointer
+{
+#if WINDOWS 
+	//HANDLE file;
+	FILE* file;
+#elif IOS || OSX
+	FILE* file;
+#endif
+};
+
+
+
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 
-
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+ string* BuildPathToAssets(MemoryArena *Partition,u32 Type);
+
+ dir_files_result OSXGetAllFilesInDir(string Path,MemoryArena *StringMem);
+
+ read_file_result OSXReadEntireFile(char* Path);
+
+ read_file_result OSXReadEntireFile(string Path);
+#endif
+
+#if IOS
+#include <mach/mach_init.h>
+ string* BuildPathToAssets(MemoryArena *Partition,u32 Type);
+ dir_files_result IOSGetAllFilesInDir(string Path,MemoryArena *StringMem);
+
+ read_file_result IOSReadEntireFile(char* Path);
+ read_file_result IOSReadEntireFile(string Path);
+
+#endif
+
+#if WINDOWS
+#include <Windows.h>
+ string* BuildPathToAssets(MemoryArena* Partition, u32 Type);
+ dir_files_result Win32GetAllFilesInDir(string Path, MemoryArena* StringMem);
+
+ read_file_result Win32ReadEntireFile(char* path);k
+
+
+#endif
+internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false);
+
+ bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false,char* options = "wb");
+
+ read_file_result PlatformReadEntireFile(char* FileName);
+
+ read_file_result PlatformReadEntireFile(string* FileName);
+
+ read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory);
+
+ read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 Type, MemoryArena* Memory);
+
+ dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* StringMem);
+
+ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem);
+
+
+#ifdef YOYOIMPL
+
+#if OSX
+#include <CoreFoundation/CoreFoundation.h>
+//Note(ray): User app needs to include core foundations need to do something about that.
+ string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -74,7 +136,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
-static dir_files_result
+ dir_files_result
 OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
@@ -113,7 +175,7 @@ OSXGetAllFilesInDir(string Path,MemoryArena *StringMem)
     return Result;
 }
 
-static read_file_result
+ read_file_result
 OSXReadEntireFile(char* Path)
 {
     read_file_result Result = {};
@@ -142,7 +204,7 @@ OSXReadEntireFile(char* Path)
     return Result;
 }
 
-static read_file_result
+ read_file_result
 OSXReadEntireFile(string Path)
 {
     return OSXReadEntireFile(Path.String);
@@ -153,7 +215,7 @@ OSXReadEntireFile(string Path)
 #include <mach/mach_init.h>
 
 //Note(ray): User app needs to include core foundations need to do something about that.
-static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+ string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -168,7 +230,7 @@ static string* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
-static dir_files_result
+ dir_files_result
 IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
@@ -207,7 +269,7 @@ IOSGetAllFilesInDir(string Path,MemoryArena *StringMem)
     return Result;
 }
 
-static read_file_result
+ read_file_result
 IOSReadEntireFile(char* Path)
 {
     read_file_result Result;
@@ -231,7 +293,7 @@ IOSReadEntireFile(char* Path)
     }
     return Result;
 }
-static read_file_result
+ read_file_result
 IOSReadEntireFile(string Path)
 {
     return IOSReadEntireFile(Path.String);
@@ -242,7 +304,7 @@ IOSReadEntireFile(string Path)
 #include <Windows.h>
 
 
-static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
+ string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
 {
 	string* DataPath = CreateStringFromLiteral(DataDir, Partition);
 	string* FinalPath;
@@ -286,7 +348,7 @@ static string* BuildPathToAssets(MemoryArena* Partition, u32 Type)
 	return AppendString(*CurrentDir, *FinalPath, Partition);;
 }
 
-static dir_files_result
+ dir_files_result
 Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 {
 	dir_files_result Result;
@@ -330,7 +392,7 @@ Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 }
 
 
-static read_file_result
+ read_file_result
 Win32ReadEntireFile(char* path)
 {
 	//Assert(Path);
@@ -401,7 +463,7 @@ Win32ReadEntireFile(char* path)
 
 
 #endif
-internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false)
+internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done )
 {
     bool result = false;
     fwrite(mem, size, 1, file);
@@ -420,17 +482,7 @@ internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is
     return result;
 }
 
-struct PlatformFilePointer
-{
-#if WINDOWS 
-	//HANDLE file;
-	FILE* file;
-#elif IOS || OSX
-	FILE* file;
-#endif
-};
-
-static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false,char* options = "wb")
+ bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done,char* options)
 {
 #if WINDOWS 
 	if(file->file == nullptr)
@@ -451,7 +503,7 @@ static bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,
 #endif
 }
 
-static read_file_result PlatformReadEntireFile(char* FileName)
+ read_file_result PlatformReadEntireFile(char* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -464,7 +516,7 @@ static read_file_result PlatformReadEntireFile(char* FileName)
 	return Result;
 }
 
-static read_file_result PlatformReadEntireFile(string* FileName)
+ read_file_result PlatformReadEntireFile(string* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -477,7 +529,7 @@ static read_file_result PlatformReadEntireFile(string* FileName)
 	return Result;
 }
 
-static read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory)
+ read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -501,7 +553,7 @@ static read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Typ
 	return Result;
 }
 
-static read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 Type, MemoryArena* Memory)
+ read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 Type, MemoryArena* Memory)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -525,7 +577,7 @@ static read_file_result PlatformReadEntireFileWithAssets(string* FileName, u32 T
 	return Result;
 }
 
-static dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* StringMem)
+ dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 #if WINDOWS
@@ -538,7 +590,7 @@ static dir_files_result PlatformGetAllFilesInDir(string Path, MemoryArena* Strin
 	return Result;
 }
 
-static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
+ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 
@@ -553,9 +605,6 @@ static dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* Str
 #endif
 	return Result;
 }
-
-#define API_FILE_H
-#endif
 
 /*
 ------------------------------------------------------------------------------
@@ -598,3 +647,7 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+#endif
+
+#define API_FILE_H
+#endif

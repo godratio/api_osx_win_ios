@@ -1,3 +1,4 @@
+#if !defined(API_STRINGS_H)
 /*
 author: Ray Garner 
 email : raygarner13@gmail.com
@@ -10,7 +11,7 @@ api_strings  - public domain string handling -
   
   */
 
-#if !defined(API_STRINGS_H)
+
 
 #define MAX_FILENAME_LENGTH 50
 #define MAX_FILE_EXTENSION_LENGTH 10
@@ -48,6 +49,101 @@ struct fixed_element_size_list
     u32 UnitSize;
     
 };
+
+api__inline b32 IsDigit(char Char);
+
+//NOTE(ray):Assumes string is already null terminated.
+APIDEF u32 String_GetLength_String(string* String);
+
+APIDEF u32 String_GetLengthSafely_String(string* String,u32 SafetyLength);
+
+//NOTE(ray):Assumes string is already null terminated.
+APIDEF u32 String_GetLength_Char(char* String);
+
+APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength);
+
+APIDEF string NullTerminate(string Source);
+
+APIDEF string* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory);
+
+//TODO(ray):Make a way to reclaim the memory from literals created here.
+APIDEF string* CreateStringFromLiteral(char* String,MemoryArena* Memory);
+
+//TODO(Ray):Make a way to reclaim the memory from literals created here.
+//TODO(Ray):Allow to have the option to do the length check safely.
+//NOTE(Ray):This function requires you free your own memory once your done.
+APIDEF string* String_Allocate(char* String);
+
+APIDEF string* AllocatEmptyString(MemoryArena* Partition);
+
+APIDEF string* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory);
+
+APIDEF string* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory);
+
+APIDEF string* CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory);
+
+APIDEF string* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory);
+
+APIDEF int Compare(string A, string B);
+
+APIDEF int CompareStringtoChar(string A, char* B);
+ 
+APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations);
+
+APIDEF b32 CompareChars(char *A, char *B);
+
+//TODO(ray): Make sure this is never used in game.
+APIDEF void PrintStringToConsole(string String);
+
+APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false);
+
+APIDEF string* StripExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem);
+
+APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false);
+
+APIDEF string* String_PadRight(string* String,char PadChar,u32 PadAmount,MemoryArena* Memory);
+
+APIDEF string* EnforceMinSize(string* String,u32 MinSize,MemoryArena* Memory);
+
+#define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
+#define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+
+APIDEF u32 CalculateStringLength(string* String);
+
+APIDEF u32 CalculateCharLength(char* String);
+
+
+APIDEF string* AppendString(string Front,string Back,MemoryArena* Memory);
+
+#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+APIDEF void AppendStringAndAdvance(string* Front,string Back,MemoryArena* Memory);
+
+APIDEF string* ElementIterator(fixed_element_size_list *Array);
+
+#include "api_tokenizer.h"
+
+APIDEF string* GetFromStringsByIndex(strings Strings, u32 Index);
+
+APIDEF strings API_String_Split(string Source,char* Separator,duel_memory_partition* Memory);
+
+APIDEF string* API_String_Iterator(strings* StringArray);
+
+//TODO(ray): Old function can do this much better.  REDO THIS!
+//TODO(ray): This will fail in the case there is no seperator present in the string.
+//Note(ray): The data type fixed_element... does not make sense should rename rework.
+APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false);
+#define MAX_FORMAT_STRING_SIZE 500
+APIDEF string* FormatToString(char* StringBuffer,MemoryArena* StringMemory);
+#include <stdarg.h>
+#include <stdio.h>
+//TODO(ray): Move this to a more proper place replace std::out
+APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_list list);
+APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* FormatString,u32 _Dummy,...);
+APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...);
+
+static string* PlatformFormatString(MemoryArena *arena,char* format_string,...);
+
+#ifdef YOYOIMPL
 
 api__inline b32 IsDigit(char Char)
 {
@@ -359,7 +455,7 @@ APIDEF void PrintStringToConsole(string String)
     }
 }
 
-APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false)
+APIDEF string* GetExtension(string* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
         //walk back from end of string till we hit a '.'
@@ -403,7 +499,7 @@ APIDEF string* StripExtension(string* FileNameOrPathWithExtension,MemoryArena *S
     return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
 }
 
-APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false)
+APIDEF string* StripAndOutputExtension(string* FileNameOrPathWithExtension,string* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     
@@ -681,7 +777,7 @@ APIDEF string* API_String_Iterator(strings* StringArray)
 //TODO(ray): Old function can do this much better.  REDO THIS!
 //TODO(ray): This will fail in the case there is no seperator present in the string.
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
-APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false)
+APIDEF fixed_element_size_list SplitString(string Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar )
 {
     
     fixed_element_size_list Result = {0};
@@ -850,9 +946,6 @@ static string* PlatformFormatString(MemoryArena *arena,char* format_string,...)
     return result;
 }
 
-#define API_STRINGS_H
-#endif
-
 /*
 ------------------------------------------------------------------------------
 This software is available under 2 licenses -- choose whichever you prefer.
@@ -894,3 +987,8 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+
+#endif
+ 
+#define API_STRINGS_H
+#endif

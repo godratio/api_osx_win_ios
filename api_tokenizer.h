@@ -1,4 +1,5 @@
 #if !defined(API_TOKENIZER_H)
+
 #include "api_vector.h"
 
 enum token_type
@@ -39,8 +40,98 @@ struct tokenizer
     char* At;
 };
 
+struct csv_field
+{
+    string Text;
+};
+
+struct csv_line
+{
+    vector Fields;
+};
+
+struct csv_data
+{
+    vector Lines;
+};
+
+
+struct cfg_entry
+{
+    b32 IsDef;
+    string Key;
+    string Text;
+    var_type Type;
+};
+
+struct cfg_block
+{
+    b32 IsDef;
+    string Name;
+    vector Entries;
+};
+
+struct cfg_data
+{
+    vector Blocks;
+};
+
+ b32 IsWhiteSpace(char At);
+
+b32 IsWhiteSpaceNoEndOfLine(char At);
+
+b32 IsNewLine(char At);
+
+b32 IsSingleLineCommentCPPStyle(char* At);
+
+b32 IsSingleLineCommentLispStyle(char* At);
+
+b32 IsMultiLineCommentCStyle(char* At);
+
+b32 IsMultiLineCommentCPPStyleEnd(char* At);
+
+b32 IsDoubleDash(char* At);
+
+b32 RequireToken(token Token,token_type TokenType);
+
+b32 MatchToken(token Token,string* Test);
+
+b32 IsAlpha(char At);
+
+b32 IsNum(char At);
+
+void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer);
+
+void ParseMultLineCommentCStyle(tokenizer* Tokenizer);
+
+void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = false);
+
+token GetToken(tokenizer *Tokenizer,MemoryArena* Partition);
+
+//Note(ray): Has a lot of special cases retrieving tokens mostly for.
+//scripting like language and fbx ascii.
+//TODO(ray): Eventually would like remove this and have anyone who is 
+//use the token api to just handle the special cases for their use case.
+//ie get raw tokens above and handle lexing of the text for each case seperately.
+token GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition);
+
+
+//NOTE(ray):Output will be a vector
+csv_data ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount);
+ token GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition);
+ void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryArena* Memory);
+#define MAX_BLOCKS 100
+ void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory);
+ void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory);
+ cfg_data ParseConfig(MemoryArena *Memory, char* TextString);
+ token GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition);
+ token GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition);
+
+#ifdef YOYOIMPL
+
 vector Tokens;
-static b32 IsWhiteSpace(char At)
+
+ b32 IsWhiteSpace(char At)
 {
     if (At == ' '  ||
         At == '\t' ||
@@ -52,7 +143,7 @@ static b32 IsWhiteSpace(char At)
     return false;
 }
 
-static b32 IsWhiteSpaceNoEndOfLine(char At)
+ b32 IsWhiteSpaceNoEndOfLine(char At)
 {
     if (At == ' '  ||
         At == '\t')
@@ -62,41 +153,41 @@ static b32 IsWhiteSpaceNoEndOfLine(char At)
     return false;
 }
 
-static b32 IsNewLine(char At)
+ b32 IsNewLine(char At)
 {
     return (At == '\n' || At == '\r');
 }
 
-static b32 IsSingleLineCommentCPPStyle(char* At)
+ b32 IsSingleLineCommentCPPStyle(char* At)
 {
     return (At[0] == '/' && At[1] == '/');
 }
 
-static b32 IsSingleLineCommentLispStyle(char* At)
+ b32 IsSingleLineCommentLispStyle(char* At)
 {
     return (At[0] == ';');
 }
 
-static b32 IsMultiLineCommentCStyle(char* At)
+ b32 IsMultiLineCommentCStyle(char* At)
 {
     return (At[0] == '/' && At[1] == '*');
 }
-static b32 IsMultiLineCommentCPPStyleEnd(char* At)
+ b32 IsMultiLineCommentCPPStyleEnd(char* At)
 {
     return (At[0] == '*' && At[1] == '/');
 }
-static b32 IsDoubleDash(char* At)
+ b32 IsDoubleDash(char* At)
 {
     return (At[0] == '-' && At[1] == '-');
 }
 
-static b32 RequireToken(token Token,token_type TokenType)
+ b32 RequireToken(token Token,token_type TokenType)
 {
     
     return (Token.Type == TokenType);
 }
 
-static b32 MatchToken(token Token,string* Test)
+ b32 MatchToken(token Token,string* Test)
 {
     if(Compare(*Token.Data,*Test))
     {
@@ -105,18 +196,18 @@ static b32 MatchToken(token Token,string* Test)
     return false;
 }
 
-static b32 IsAlpha(char At)
+ b32 IsAlpha(char At)
 {
     b32 Result = ((At >= 'a' && At <= 'z') ||
                   (At >= 'A' && At <= 'Z'));
     return Result;
 }
 
-static b32 IsNum(char At)
+ b32 IsNum(char At)
 {
     return (At >= '0' && At <= '9') || (At == '-') || (At == '.');
 }
-static void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
+ void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
 {
     for(;;)
     {
@@ -132,7 +223,7 @@ static void ParseSingleLineCommentCPPStyle(tokenizer* Tokenizer)
     }
 }
 
-static void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
+ void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
 {
     for(;;)
     {
@@ -148,7 +239,7 @@ static void ParseMultLineCommentCStyle(tokenizer* Tokenizer)
     }
 }
 
-static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = false)
+ void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars)
 {
     if(IncludeEndOfLineChars)
     {
@@ -168,7 +259,7 @@ static void EatAllWhiteSpace(tokenizer *Tokenizer,b32 IncludeEndOfLineChars = fa
     }
 }
 
-static token 
+ token 
 GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
 {
     token Result;
@@ -256,7 +347,7 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
 //TODO(ray): Eventually would like remove this and have anyone who is 
 //use the token api to just handle the special cases for their use case.
 //ie get raw tokens above and handle lexing of the text for each case seperately.
-static token 
+ token 
 GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
 {
     token Result;
@@ -329,23 +420,9 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
 }
 
 
-struct csv_field
-{
-    string Text;
-};
-
-struct csv_line
-{
-    vector Fields;
-};
-
-struct csv_data
-{
-    vector Lines;
-};
 
 //NOTE(ray):Output will be a vector
-static csv_data
+ csv_data
 ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
@@ -394,27 +471,7 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
     return Data;
 }
 
-struct cfg_entry
-{
-    b32 IsDef;    
-	string Key;
-	string Text;
-    var_type Type;
-};
-
-struct cfg_block
-{
-    b32 IsDef;
-    string Name;
-    vector Entries;
-};
-
-struct cfg_data
-{
-	vector Blocks;
-};
-
-static token
+ token
 GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
@@ -490,7 +547,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
     return Result;
 }
 
-static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryArena* Memory)
+ void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryArena* Memory)
 {
     token Token = GetCFGToken(Tokenizer,Memory);
     cfg_entry EntryCanidate;
@@ -523,7 +580,7 @@ static void ParseConfigKeyValues(cfg_block* Block,tokenizer* Tokenizer,MemoryAre
 }
 
 #define MAX_BLOCKS 100
-static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
+ void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
 {
     string* TaskName = NameToken.Data;
     
@@ -534,7 +591,7 @@ static void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken
     
 }
 
-static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
+ void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
     string* TaskName = NameToken.Data;
@@ -547,7 +604,7 @@ static void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memor
     
 }
 
-static cfg_data
+ cfg_data
 ParseConfig(MemoryArena *Memory, char* TextString)
 {
 	cfg_data Data;
@@ -586,7 +643,7 @@ ParseConfig(MemoryArena *Memory, char* TextString)
     return Data;
 }
 
-static token
+ token
 GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
@@ -664,7 +721,7 @@ GetUIToken(tokenizer *Tokenizer, MemoryArena* Partition)
     return Result;
 }
 
-static token
+ token
 GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     token Result;
@@ -741,5 +798,6 @@ GetSeedToken(tokenizer *Tokenizer, MemoryArena* Partition)
     return Result;
 }
 
+#endif
 #define API_TOKENIZER_H
 #endif
