@@ -98,7 +98,7 @@ struct PlatformFilePointer
 
 
 #endif
-internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false);
+static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done = false);
 
  bool PlatformWriteMemoryToFile(PlatformFilePointer* file,char* file_name,void* mem,memory_index size,bool is_done = false,char* options = "wb");
 
@@ -463,7 +463,7 @@ Win32ReadEntireFile(char* path)
 
 
 #endif
-internal bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done )
+static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_done )
 {
     bool result = false;
     fwrite(mem, size, 1, file);

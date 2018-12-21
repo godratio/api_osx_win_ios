@@ -46,7 +46,7 @@ typedef intptr_t memory_index;
 
 //NOTE(ray):These are helpful because static has different functionality in different contexts.
 //these are to make it explicit
-#define internal static;
+//#define internal static;
 #define local_persist static;
 #define global_variable static;
 
