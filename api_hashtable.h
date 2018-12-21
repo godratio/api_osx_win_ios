@@ -26,7 +26,21 @@ struct HashTable
 	vector values;
 };
 
-static HashTable CreateHashTable(u32 start_count)
+
+HashTable CreateHashTable(u32 start_count);
+
+u64 UHashMod(const char *Key, unsigned TableSize);
+
+u64 HashFunction(HashTable* h_table,const char* in);
+
+void AddElementToHashTable(HashTable* h_table,char* key,void* element);
+
+#define GetElementByHash(Type,table,in) (Type*)GetElementByHash_(table,in)
+void* GetElementByHash_(HashTable* h_table,char* in);
+
+#ifdef YOYOIMPL
+
+HashTable CreateHashTable(u32 start_count)
 {
 	HashTable result;
 	result.keys = CreateVector(start_count,sizeof(HashKeyEntry));
@@ -51,18 +65,17 @@ u64 UHashMod(const char *Key, unsigned TableSize)
 		rand1 = (rand1 * rand2); // Update rand1 for next "random" number
 		Key++;
 	}
-
 	return hash % TableSize;
 }
 
-static u64 HashFunction(HashTable* h_table,const char* in)
+ u64 HashFunction(HashTable* h_table,const char* in)
 {
 	u64 result;
 	result = UHashMod(in, h_table->keys.TotalCount);
 	return result;
 }
 
-static void AddElementToHashTable(HashTable* h_table,char* key,void* element)
+ void AddElementToHashTable(HashTable* h_table,char* key,void* element)
 {
 	u64 hash_index = HashFunction(h_table,key);
 	HashKeyEntry e{};
@@ -88,8 +101,7 @@ static void AddElementToHashTable(HashTable* h_table,char* key,void* element)
 	}
 }
 
-#define GetElementByHash(Type,table,in) (Type*)GetElementByHash_(table,in)
-static void* GetElementByHash_(HashTable* h_table,char* in)
+ void* GetElementByHash_(HashTable* h_table,char* in)
 {
 	void* result;
 	u64 hash_index = HashFunction(h_table,in);
@@ -105,6 +117,6 @@ static void* GetElementByHash_(HashTable* h_table,char* in)
 	}
 	return result;
 }
-
+#endif
 #define API_HASHTABLE
 #endif

@@ -1,3 +1,4 @@
+#if !defined(API_MEMORY_H)
 /*
 author: Ray Garner 
 email : raygarner13@gmail.com
@@ -10,14 +11,116 @@ api_vector  - public domain  emory allocing and deallocing -
   
   */
 
-#if !defined(API_MEMORY_H)
+enum partition_push_flag
+{
+    PartitionFlag_None = 0x0,
+    PartitionFlag_ClearToZero = 0x1,
+};
+
+struct partition_push_params
+{
+    u32 Flags;
+    u32 Alignment;
+};
+
+struct MemoryArena
+{
+    void* base;
+    memory_index size;
+    u32 used;
+    u32 temp_count;
+};
+
+struct temp_memory
+{
+    MemoryArena *Partition;
+    u32 used;
+};
+
+struct duel_memory_partition
+{
+    MemoryArena FixedSized;
+    MemoryArena VariableSized;
+};
 
 #if OSX
 #include <mach/mach_init.h>
 #include <mach/mach_vm.h>
 
-static void*
-OSXAllocateMemory(memory_index in_size)
+static void* OSXAllocateMemory(memory_index in_size);
+static void OSXDeAllocateMemory(void* Memory,s64 size);
+#endif
+
+#if IOS
+#include <mach/mach_init.h>
+static void* IOSAllocateMemory(memory_index in_size);
+static void IOSDeAllocateMemory(void* Memory,s64 size);
+#endif
+
+#if WINDOWS
+#include <windows.h>
+static void* Win32AllocateMemory(memory_index Size);
+static void Win32DeAllocateMemory(void* Memory,s64 Size);
+#endif
+
+inline partition_push_params DefaultPartitionParams();
+
+void* GetPartitionPointer(MemoryArena Partition);
+void* PlatformAllocateMemory(memory_index in_size);
+
+void PlatformDeAllocateMemory(void* Memory, memory_index in_size);
+inline memory_index GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment);
+ 
+ void FreeDuelMemoryPartion(duel_memory_partition* Partition);
+
+ void FreeMemoryPartion(MemoryArena* Partition);
+
+ MemoryArena AllocateMemoryPartition(u32 Size);
+
+ duel_memory_partition AllocateDuelMemoryPartition(u32 Size);
+
+ void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base);
+
+ MemoryArena AllocatePartition(memory_index Size, void* Base);
+
+inline MemoryArena* PlatformAllocatePartition(memory_index Size);
+
+//TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
+ void ClearToZero(MemoryArena *Partition);
+
+ void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero = true);
+
+ temp_memory BeginTempMemory(MemoryArena *Partition);
+
+ void EndTempMemory(temp_memory TempMem);
+
+ void ValidateTempMemory(temp_memory TempMem);
+
+ b32 TestFlag(u32 Flag, u32 TestAgaist);
+
+ void ClearSize(MemoryArena *Partition,u32 Size);
+
+#define ZeroStruct(Instance) ClearToZero(&(Instance),sizeof(Instance))
+#define ZeroArray(Count, Pointer) ClearToZero(Pointer,Count*sizeof((Pointer)[0]))
+ void ClearToZero(void* Mem,u32 Size);
+
+#define PushArray(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
+#define PushStruct(Partition,Type,...) (Type*)PushSize_(Partition,sizeof(Type),## __VA_ARGS__)
+#define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
+ void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams());
+
+inline partition_push_params NoClear();
+
+inline char *PushCharString(MemoryArena *Partition, char *CharString);
+
+
+
+
+#if OSX
+#include <mach/mach_init.h>
+#include <mach/mach_vm.h>
+
+ void* OSXAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
     kern_return_t kr;
@@ -27,7 +130,7 @@ OSXAllocateMemory(memory_index in_size)
     return (void*)address;
 }
 
-static void OSXDeAllocateMemory(void* Memory,s64 size)
+ void OSXDeAllocateMemory(void* Memory,s64 size)
 {
     mach_vm_address_t Address = (mach_vm_address_t)Memory;
     //mach_vm_size_t MachSize = (mach_vm_size_t)size;
@@ -40,7 +143,7 @@ static void OSXDeAllocateMemory(void* Memory,s64 size)
 #include <mach/mach_init.h>
 //#include <mach/mach_vm.h>
 
-static void*
+ void*
 IOSAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
@@ -52,7 +155,7 @@ IOSAllocateMemory(memory_index in_size)
     return (void*)address;
 }
 
-static void 
+ void 
 IOSDeAllocateMemory(void* Memory,s64 size)
 {
     mach_vm_address_t Address = (mach_vm_address_t)Memory;
@@ -66,7 +169,7 @@ IOSDeAllocateMemory(void* Memory,s64 size)
 #if WINDOWS
 #include <windows.h>
 
-static void*
+ void*
 Win32AllocateMemory(memory_index Size)
 {
     // TODO(ray): Verify the type we are passing in make sure
@@ -84,7 +187,7 @@ Win32AllocateMemory(memory_index Size)
     return Memory;
 }
 
-static void
+ void
 Win32DeAllocateMemory(void* Memory,s64 Size)
 {
     VirtualFree(
@@ -95,45 +198,13 @@ Win32DeAllocateMemory(void* Memory,s64 Size)
 }
 #endif
 
-enum partition_push_flag
-{
-    PartitionFlag_ClearToZero = 0x1,
-};
 
-struct partition_push_params
-{
-    u32 Flags;
-    u32 Alignment;
-};
-
-inline partition_push_params
-DefaultPartitionParams()
+inline partition_push_params DefaultPartitionParams()
 {
     partition_push_params Params;
     Params.Flags = PartitionFlag_ClearToZero;
     Params.Alignment = 4;
     return(Params);
-}
-
-struct MemoryArena
-{
-    void* base;
-    memory_index size;
-    u32 used;
-    u32 temp_count;
-};
-
-struct temp_memory
-{
-    MemoryArena *Partition;
-    u32 used;
-};
-
-static void* 
-GetPartitionPointer(MemoryArena Partition)
-{
-	void * Result = (uint8_t*)Partition.base + Partition.used;
-    return Result;
 }
 
 inline void* PlatformAllocateMemory(memory_index in_size)
@@ -177,24 +248,28 @@ GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
     return(AlignmentOffset);
 }
 
-struct duel_memory_partition
-{
-    MemoryArena FixedSized;
-    MemoryArena VariableSized;
-};
+#ifdef YOYOIMPL
 
-static void FreeDuelMemoryPartion(duel_memory_partition* Partition)
+ void* 
+GetPartitionPointer(MemoryArena Partition)
+{
+	void * Result = (uint8_t*)Partition.base + Partition.used;
+    return Result;
+}
+
+ 
+ void FreeDuelMemoryPartion(duel_memory_partition* Partition)
 {
     PlatformDeAllocateMemory(Partition->FixedSized.base,Partition->FixedSized.size);    
     PlatformDeAllocateMemory(Partition->VariableSized.base,Partition->VariableSized.size);    
 }
 
-static void FreeMemoryPartion(MemoryArena* Partition)
+ void FreeMemoryPartion(MemoryArena* Partition)
 {
     PlatformDeAllocateMemory(Partition->base,Partition->size);    
 }
 
-static MemoryArena AllocateMemoryPartition(u32 Size)
+ MemoryArena AllocateMemoryPartition(u32 Size)
 {
     MemoryArena Result;
     void* Base = PlatformAllocateMemory(Size);
@@ -205,7 +280,7 @@ static MemoryArena AllocateMemoryPartition(u32 Size)
     return Result;    
 }
 
-static duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
+ duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
 {
     duel_memory_partition Result;
     Result.FixedSized = AllocateMemoryPartition(Size);
@@ -213,7 +288,7 @@ static duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
     return Result;
 }
 
-static void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base)
+ void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base)
 {
     //Assert
     Partition->base = Base;
@@ -222,7 +297,7 @@ static void AllocatePartition(MemoryArena *Partition, memory_index Size, void* B
     Partition->temp_count = 0;
 }
 
-static MemoryArena AllocatePartition(memory_index Size, void* Base)
+ MemoryArena AllocatePartition(memory_index Size, void* Base)
 {
     MemoryArena result;
     //Assert
@@ -244,7 +319,7 @@ inline MemoryArena* PlatformAllocatePartition(memory_index Size)
 }
 
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
-static void ClearToZero(MemoryArena *Partition)
+ void ClearToZero(MemoryArena *Partition)
 {
     for (u32 ByteIndex = 0; ByteIndex < Partition->size; ++ByteIndex)
     {
@@ -253,7 +328,7 @@ static void ClearToZero(MemoryArena *Partition)
     }
 }
 
-static void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero = true)
+ void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero)
 {
     //Assert
     Partition->used = 0;
@@ -263,7 +338,7 @@ static void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero = tr
     }
 }
 
-static temp_memory BeginTempMemory(MemoryArena *Partition)
+ temp_memory BeginTempMemory(MemoryArena *Partition)
 {
     temp_memory Result;
     Result.Partition = Partition;
@@ -272,18 +347,18 @@ static temp_memory BeginTempMemory(MemoryArena *Partition)
     return Result;
 }
 
-static void EndTempMemory(temp_memory TempMem)
+ void EndTempMemory(temp_memory TempMem)
 {
     TempMem.Partition->used = TempMem.used;
     TempMem.Partition->temp_count--;
 }
 
-static void ValidateTempMemory(temp_memory TempMem)
+ void ValidateTempMemory(temp_memory TempMem)
 {
     Assert(TempMem.Partition->temp_count < 1);
 }
 
-static b32 TestFlag(u32 Flag, u32 TestAgaist)
+ b32 TestFlag(u32 Flag, u32 TestAgaist)
 {
     if ((Flag & TestAgaist) == TestAgaist)
     {
@@ -292,7 +367,7 @@ static b32 TestFlag(u32 Flag, u32 TestAgaist)
     return false;
 }
 
-static void ClearSize(MemoryArena *Partition,u32 Size)
+ void ClearSize(MemoryArena *Partition,u32 Size)
 {
     Assert(Size > 0)
         Size--;
@@ -314,9 +389,8 @@ static void ClearSize(MemoryArena *Partition,u32 Size)
         }
     }
 }
-#define ZeroStruct(Instance) ClearToZero(&(Instance),sizeof(Instance))
-#define ZeroArray(Count, Pointer) ClearToZero(Pointer,Count*sizeof((Pointer)[0]))
-static void ClearToZero(void* Mem,u32 Size)
+
+ void ClearToZero(void* Mem,u32 Size)
 {
     Assert(Size > 0)
         u8* Byte = (u8*)Mem;
@@ -327,11 +401,7 @@ static void ClearToZero(void* Mem,u32 Size)
 }
 
 //TODO(ray):Add memory alignment options here!!
-
-#define PushArray(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
-#define PushStruct(Partition,Type,...) (Type*)PushSize_(Partition,sizeof(Type),## __VA_ARGS__)
-#define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
-static void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams())
+ void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams)
 {
     //Assert used < size
     Assert(Partition->used + Size <= Partition->size)
@@ -377,10 +447,6 @@ PushCharString(MemoryArena *Partition, char *CharString)
 }
 
 
-#define API_MEMORY_H
-#endif
-
-
 /*
 ------------------------------------------------------------------------------
 This software is available under 2 licenses -- choose whichever you prefer.
@@ -422,3 +488,7 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+#endif
+
+#define API_MEMORY_H
+#endif
