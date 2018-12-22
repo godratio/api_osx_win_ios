@@ -213,7 +213,7 @@ OSXReadEntireFile(Yostr Path)
 
 #if IOS
 #include <mach/mach_init.h>
-
+#include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
  Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {

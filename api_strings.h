@@ -899,7 +899,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
 #if WINDOWS
 		vsprintf(TextBuffer,FormatString, list);
 		OutputDebugString(TextBuffer);
-#elif OSX
+#elif OSX || IOS
         vsprintf(TextBuffer, FormatString, list);
         printf("%s",TextBuffer);
 #endif
