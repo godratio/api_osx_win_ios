@@ -10,7 +10,7 @@
 
 //NOTE(ray): This is how we expose all our libs
 #ifdef API_STRING_STATIC
-#define APIDEF static
+#define APIDEF// static
 #else
 #ifdef __cplusplus
 #define APIDEF extern "C"

@@ -139,9 +139,9 @@ APIDEF Yostr* FormatToString(char* StringBuffer,MemoryArena* StringMemory);
 //TODO(ray): Move this to a more proper place replace std::out
 APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_list list);
 APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* FormatString,u32 _Dummy,...);
-APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...);
+void PlatformOutput(bool use_toggle,const char* FormatString,...);
 
-static Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...);
+Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...);
 
 #ifdef YOYOIMPL
 
@@ -919,7 +919,7 @@ APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* For
     fgets(Buffer,2048,stdin);
 }
 
-APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...)
+void PlatformOutput(bool use_toggle,const char* FormatString,...)
 {
     va_list List;
 	va_start(List, FormatString);
@@ -928,7 +928,7 @@ APIDEF void PlatformOutput(bool use_toggle,const char* FormatString,...)
 	va_end(List);
 }
 
-static Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...)
+Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 {
     
     va_list list;
