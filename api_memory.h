@@ -318,6 +318,15 @@ void DeAllocatePartition(MemoryArena *Partition, bool ClearMemToZero)
     }
 }
 
+MemoryArena ResizeArena(MemoryArena* partition,memory_index new_size)
+{
+    MemoryArena new_arena = AllocateMemoryPartition(new_size);
+    memcpy(new_arena.base,partition->base,partition->used);
+    DeAllocatePartition(partition,false);
+    FreeMemoryPartion(partition);
+    return new_arena;
+}
+
 temp_memory BeginTempMemory(MemoryArena *Partition)
 {
     temp_memory Result;
