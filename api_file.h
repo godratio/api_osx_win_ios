@@ -91,7 +91,7 @@ struct PlatformFilePointer
 
 #if WINDOWS
 #include <Windows.h>
- string* BuildPathToAssets(MemoryArena* Partition, u32 Type);
+ Yostr* BuildPathToAssets(MemoryArena* Partition, u32 Type);
  dir_files_result Win32GetAllFilesInDir(string Path, MemoryArena* StringMem);
 
  read_file_result Win32ReadEntireFile(char* path);k
@@ -136,8 +136,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
     return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
- dir_files_result
-OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
+dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -175,8 +174,7 @@ OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     return Result;
 }
 
- read_file_result
-OSXReadEntireFile(char* Path)
+read_file_result OSXReadEntireFile(char* Path)
 {
     read_file_result Result = {};
     FILE *File = fopen (Path, "r");
@@ -204,8 +202,7 @@ OSXReadEntireFile(char* Path)
     return Result;
 }
 
- read_file_result
-OSXReadEntireFile(Yostr Path)
+read_file_result OSXReadEntireFile(Yostr Path)
 {
     return OSXReadEntireFile(Path.String);
 }
@@ -215,7 +212,7 @@ OSXReadEntireFile(Yostr Path)
 #include <mach/mach_init.h>
 #include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
- Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -269,8 +266,7 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     return Result;
 }
 
- read_file_result
-IOSReadEntireFile(char* Path)
+read_file_result IOSReadEntireFile(char* Path)
 {
     read_file_result Result;
     FILE *File = fopen (Path, "r");
@@ -293,8 +289,7 @@ IOSReadEntireFile(char* Path)
     }
     return Result;
 }
- read_file_result
-IOSReadEntireFile(Yostr Path)
+read_file_result IOSReadEntireFile(Yostr Path)
 {
     return IOSReadEntireFile(Path.String);
 }
@@ -348,8 +343,7 @@ IOSReadEntireFile(Yostr Path)
 	return AppendString(*CurrentDir, *FinalPath, Partition);;
 }
 
- dir_files_result
-Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
+dir_files_result Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 
@@ -392,8 +386,7 @@ Win32GetAllFilesInDir(string Path, MemoryArena* StringMem)
 }
 
 
- read_file_result
-Win32ReadEntireFile(char* path)
+read_file_result Win32ReadEntireFile(char* path)
 {
 	//Assert(Path);
 	read_file_result Result = {};
@@ -503,7 +496,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 #endif
 }
 
- read_file_result PlatformReadEntireFile(char* FileName)
+read_file_result PlatformReadEntireFile(char* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -516,7 +509,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 	return Result;
 }
 
- read_file_result PlatformReadEntireFile(Yostr* FileName)
+read_file_result PlatformReadEntireFile(Yostr* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -529,7 +522,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 	return Result;
 }
 
- read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory)
+read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, MemoryArena* Memory)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -553,7 +546,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 	return Result;
 }
 
- read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, MemoryArena* Memory)
+read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, MemoryArena* Memory)
 {
 	read_file_result Result;
 #if WINDOWS
@@ -577,7 +570,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 	return Result;
 }
 
- dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem)
+dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 #if WINDOWS
@@ -590,7 +583,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 	return Result;
 }
 
- dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
+dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 
