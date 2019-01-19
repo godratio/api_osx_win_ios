@@ -14,6 +14,13 @@ api_file  - public domain file handling -
 #include "api_vector.h"
 #include "api_memory.h"
 
+//NOTE(Ray):We will no longer dicate this.
+//IMPORTANT(RAY):THIS MUST BE SET.
+namespace APIFileOptions
+{
+    extern char* data_dir;
+}
+
 static char* DataDir = "/../../data/";
 
 //#include <stdio.h>
@@ -29,14 +36,14 @@ struct dir_files_result
 	vector Files;//files infos
 	~dir_files_result()
 	{
-		FreeVectorMem(&Files);
+		//FreeVectorMem(&Files);
 	}
 };
 
 struct file_info
 {
 	void* File;
-	Yostr* Name;
+	Yostr Name;
 	memory_index FileSize;
 	u32 FileCount;
 };
@@ -53,7 +60,6 @@ enum directory_type
     Directory_Lighting
 };
 
-
 struct PlatformFilePointer
 {
 #if WINDOWS 
@@ -64,15 +70,13 @@ struct PlatformFilePointer
 #endif
 };
 
-
-
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 
 //Note(ray): User app needs to include core foundations need to do something about that.
  Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type);
 
- dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem);
+ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively = false);
 
  read_file_result OSXReadEntireFile(char* Path);
 
@@ -110,13 +114,15 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 
  read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, MemoryArena* Memory);
 
- dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem);
+ dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively = false);
 
- dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem);
-
+ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively = false);
 
 #ifdef YOYOIMPL
 
+namespace APIFileOptions {
+    char* data_dir = "";
+}
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
@@ -124,7 +130,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
-//TODO(ray):Verify this is big enough.
+//TODO(ray):Verify this is big enough. never big enough
     u32 DirMaxSize = 1000;
     Yostr* CurrentDir = AllocatEmptyString(Partition);
     PushSize(Partition,DirMaxSize);
@@ -133,10 +139,10 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 // error
     }
     String_GetLength_String(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
+    return AppendString(*CurrentDir,*CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
 }
 
-dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
+dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -147,7 +153,14 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
-    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
+    CFURLEnumeratorOptions options = kCFURLEnumeratorDefaultBehavior;
+    if(recursively)
+    {
+        options = kCFURLEnumeratorDescendRecursively;
+    }
+    
+    CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef,options , 0);
+    //CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
     while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess)
     {
@@ -165,8 +178,9 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
         
         Yostr* FileName = CreateStringFromLength(End, StepCount, StringMem);
         file_info Info;
-        Info.Name = FileName;
+        Info.Name = *FileName;
         PushVectorElement(&Result.Files, &Info);
+        file_info* ites =(file_info*) GetVectorElement(file_info, &Result.Files, 0);
         if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL))
         {
         }
@@ -570,20 +584,20 @@ read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, Mem
 	return Result;
 }
 
-dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem)
+dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively)
 {
 	dir_files_result Result;
 #if WINDOWS
 	Result = Win32GetAllFilesInDir(Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(Path, StringMem);
+    Result = OSXGetAllFilesInDir(Path, StringMem,recursively);
 #elif IOS
     Result = IOSGetAllFilesInDir(Path, StringMem);
 #endif
 	return Result;
 }
 
-dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
+dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively)
 {
 	dir_files_result Result;
 
@@ -592,7 +606,7 @@ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem)
 #if WINDOWS
 	Result = Win32GetAllFilesInDir(*Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(*Path, StringMem);
+    Result = OSXGetAllFilesInDir(*Path, StringMem,recursively);
 #elif IOS
     Result = IOSGetAllFilesInDir(*Path, StringMem);
 #endif
