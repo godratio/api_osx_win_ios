@@ -455,6 +455,23 @@ APIDEF void PrintStringToConsole(Yostr String)
     }
 }
 
+/*
+APIDEF Yostr GetFilenameFromPath(Yostr* pathwithfilename,MemoryArena* string_mem)
+{
+    Yostr result;
+    char* End = pathwithfilename->String + pathwithfilename->Length;
+    u32 StepCount = 1;
+    while(*(End - 1) != '/')
+    {
+        --End;
+        ++StepCount;
+    }
+    result.String = End;
+    result.Length = StepCount;
+    return Result;    
+}
+*/
+
 APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)

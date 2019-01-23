@@ -114,9 +114,9 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
 
  read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, MemoryArena* Memory);
 
- dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively = false);
+dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively = false,bool get_full_path = false);
 
- dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively = false);
+dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively = false,bool get_full_path = false);
 
 #ifdef YOYOIMPL
 
@@ -142,7 +142,7 @@ namespace APIFileOptions {
     return AppendString(*CurrentDir,*CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
 }
 
-dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively)
+dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively,bool get_full_path)
 {
     dir_files_result Result;
     Result.Files = CreateVector(1000,sizeof(file_info));
@@ -160,10 +160,14 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
     }
     
     CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef,options , 0);
-    //CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
     CFURLRef URL = NULL;
     while (CFURLEnumeratorGetNextURL(Enumerator, &URL, NULL) == kCFURLEnumeratorSuccess)
     {
+        if(recursively && CFURLHasDirectoryPath(URL))
+        {
+            continue;
+        }
+
         CFNumberRef valueNum = NULL;
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
@@ -176,7 +180,21 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
             ++StepCount;
         }
         
-        Yostr* FileName = CreateStringFromLength(End, StepCount, StringMem);
+        Yostr* FileName;
+        if(get_full_path)
+        {
+            FileName = PathToFile;
+            //remove file prefex
+            while(*(FileName->String) != '/')//after we get past the file:/than we are ready
+            {
+                ++FileName->String;
+            }
+        }
+        else
+        {
+            FileName = CreateStringFromLength(End, StepCount, StringMem);
+        }
+
         file_info Info;
         Info.Name = *FileName;
         PushVectorElement(&Result.Files, &Info);
@@ -184,7 +202,13 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
         if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL))
         {
         }
+        CFRelease(valueNum);
+        CFRelease(fileName);
     }
+    //CFRelease(URL);
+    CFRelease(Enumerator);
+    CFRelease(DirRef);
+    CFRelease(UrlRef);
     return Result;
 }
 
@@ -584,20 +608,20 @@ read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, Mem
 	return Result;
 }
 
-dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively)
+dir_files_result PlatformGetAllFilesInDir(Yostr Path, MemoryArena* StringMem,bool recursively,bool get_full_path)
 {
 	dir_files_result Result;
 #if WINDOWS
 	Result = Win32GetAllFilesInDir(Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(Path, StringMem,recursively);
+    Result = OSXGetAllFilesInDir(Path, StringMem,recursively,get_full_path);
 #elif IOS
     Result = IOSGetAllFilesInDir(Path, StringMem);
 #endif
 	return Result;
 }
 
-dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively)
+dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,bool recursively,bool get_full_path)
 {
 	dir_files_result Result;
 
@@ -606,7 +630,7 @@ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,
 #if WINDOWS
 	Result = Win32GetAllFilesInDir(*Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(*Path, StringMem,recursively);
+    Result = OSXGetAllFilesInDir(*Path, StringMem,recursively,get_full_path);
 #elif IOS
     Result = IOSGetAllFilesInDir(*Path, StringMem);
 #endif
