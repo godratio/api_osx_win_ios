@@ -137,6 +137,7 @@ namespace APIFileOptions {
     if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir->String, DirMaxSize))
     {
 // error
+        Assert(false);
     }
     String_GetLength_String(CurrentDir);
     return AppendString(*CurrentDir,*CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
@@ -172,14 +173,6 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
         Yostr* PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
-        char* End = PathToFile->String + PathToFile->Length - 1;
-        u32 StepCount = 1;
-        while(*(End - 1) != '/')
-        {
-            --End;
-            ++StepCount;
-        }
-        
         Yostr* FileName;
         if(get_full_path)
         {
@@ -188,17 +181,17 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
             while(*(FileName->String) != '/')//after we get past the file:/than we are ready
             {
                 ++FileName->String;
+                FileName->Length--;
             }
         }
         else
         {
-            FileName = CreateStringFromLength(End, StepCount, StringMem);
+            *FileName = GetFilenameFromPath(PathToFile,StringMem);          
         }
 
         file_info Info;
         Info.Name = *FileName;
         PushVectorElement(&Result.Files, &Info);
-        file_info* ites =(file_info*) GetVectorElement(file_info, &Result.Files, 0);
         if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL))
         {
         }
@@ -527,6 +520,7 @@ static bool Win32WriteToFile(FILE* file, void* mem, memory_index size, bool is_d
     if(file->file == nullptr)
     {
         file->file = fopen(file_name, options);
+        printf( "Error opening file: %s\n", strerror( errno ) );
         //file->file = CreateFileA(file_name, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     }
     return Win32WriteToFile(file->file,mem, size,is_done);

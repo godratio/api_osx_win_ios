@@ -394,13 +394,13 @@ void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams
 {
     //Assert used < size
     Assert(Partition->used + Size <= Partition->size)
-    void * Result = (uint8_t*)Partition->base + Partition->used;
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
         ClearSize(Partition, Size);
     }
+    void* result = (uint8_t*)Partition->base + Partition->used;
     Partition->used = Partition->used + Size;
-    return Result;
+    return result;
 }
 
 inline partition_push_params NoClear()
