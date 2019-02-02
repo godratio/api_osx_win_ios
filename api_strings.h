@@ -468,8 +468,8 @@ APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,Memo
 {
     Yostr result;
     char* End = pathwithfilename + length;
-    u32 StepCount = 1;
-    while(*(End - 1) != '/')
+    uint32_t StepCount = 1;
+    while(*(End - 1) != '/' && StepCount <= (uint32_t)length)
     {
         --End;
         ++StepCount;
