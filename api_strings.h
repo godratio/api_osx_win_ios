@@ -517,7 +517,7 @@ APIDEF Yostr* StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *Str
     while (*End != '.')
     {
         --End;
-        if (StepCount > MAX_FILENAME_LENGTH)
+        if (StepCount++ > FileNameOrPathWithExtension->Length)
         {
             //TODO(ray):Log this as an error?
             break;
