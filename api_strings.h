@@ -1,3 +1,7 @@
+
+//TODO(Ray):Returning pointers here is pretty stupid me thinks deprecate these oneday.
+//Wrote this when I was a noob guy.
+
 #if !defined(API_STRINGS_H)
 /*
 author: Ray Garner 
@@ -14,7 +18,7 @@ api_strings  - public domain string handling -
 
 
 #define MAX_FILENAME_LENGTH 50
-#define MAX_FILE_EXTENSION_LENGTH 10
+#define MAX_FILE_EXTENSION_LENGTH 3
 
 #include <stdint.h>
 #include <stdio.h>
@@ -108,10 +112,12 @@ APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory);
 #define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
 
+#define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr->String,yostr->Length,arena)
+APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem);
+
 APIDEF u32 CalculateStringLength(Yostr* String);
 
 APIDEF u32 CalculateCharLength(char* String);
-
 
 APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory);
 
@@ -323,6 +329,7 @@ APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End
     //One more for a possible null char.
     (char*)PushSize(&Memory->VariableSized, 1);
     Result->String = (char*)StartPointer;
+    
     //*Result = NullTerminate(*Result);
     return Result;
 }
@@ -362,6 +369,7 @@ APIDEF Yostr* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory
         Iterator++;
     }
     Result->String = (char*)StartPointer;
+    *Result = NullTerminate(*Result);
     return Result;
 }
 
@@ -455,6 +463,23 @@ APIDEF void PrintStringToConsole(Yostr String)
     }
 }
 
+
+APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem)
+{
+    Yostr result;
+    char* End = pathwithfilename + length;
+    uint32_t StepCount = 1;
+    while(*(End - 1) != '/' && StepCount <= (uint32_t)length)
+    {
+        --End;
+        ++StepCount;
+    }
+    result.String = End;
+    result.Length = StepCount;
+    result = NullTerminate(result);
+    return result;
+}
+
 APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
@@ -472,7 +497,9 @@ APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *Strin
         ++StepsTaken;
         if (StepsTaken > MAX_FILE_EXTENSION_LENGTH)
         {
-            //TODO(ray):Log this as an error?
+            Assert(false);//Something has failed horribly either the path was wrong or we do not support
+            //extensions longer than 3 letters because its nonsensical
+            
             break;
         }
     }
@@ -592,17 +619,16 @@ APIDEF u32 CalculateCharLength(char* String)
     return Length;
 }
 
-
 APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
 {
     Yostr *Result = PushStruct(Memory,Yostr);
     void* StartPointer = GetPartitionPointer(*Memory);
-    char* StrPtr;
+    
     char* At = Front.String;
     u32 Iterations = 0;
     while(*At && Iterations < Front.Length)
     {
-        StrPtr = (char*)PushSize(Memory,1);
+        char* StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
         Result->Length++;
         At++;
@@ -612,7 +638,7 @@ APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
     Iterations = 0;
     while(*At && Iterations < Back.Length)
     {
-        StrPtr = (char*)PushSize(Memory,1);
+        char* StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
         Result->Length++;
         At++;
@@ -895,7 +921,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
 {
     if (UseToggle)
     {
-        char TextBuffer[100];
+        char TextBuffer[10000];
 #if WINDOWS
 		vsprintf(TextBuffer,FormatString, list);
 		OutputDebugString(TextBuffer);
@@ -923,7 +949,6 @@ void PlatformOutput(bool use_toggle,const char* FormatString,...)
 {
     va_list List;
 	va_start(List, FormatString);
-	char TextBuffer[100];
     PlatformOutputToConsole(use_toggle,FormatString, List);
 	va_end(List);
 }
