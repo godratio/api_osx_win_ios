@@ -286,7 +286,7 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
             --End;
             ++StepCount;
         }
-        Yostr* FileName = CreateStringFromLength(End, StepCount, StringMem);
+        Yostr FileName = *CreateStringFromLength(End, StepCount, StringMem);
         file_info Info;
         Info.Name = FileName;// CreateStringFromLiteral(FileName,StringMem);// ffd.cFileName;
         PushVectorElement(&Result.Files, &Info);
