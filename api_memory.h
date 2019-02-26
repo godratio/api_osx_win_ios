@@ -85,7 +85,10 @@ inline void AllocatePartition(MemoryArena *Partition, memory_index Size, void* B
 
 inline MemoryArena AllocatePartition(memory_index Size, void* Base);
 
-inline MemoryArena* PlatformAllocatePartition(memory_index Size);
+inline MemoryArena PlatformAllocatePartition(memory_index Size);
+
+//NOTE(Ray):REmvoed because dumb. wrote this when I was still a noob to pointers and c.
+//inline MemoryArena* PlatformAllocatePartition(memory_index Size);
 
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
  void ClearToZero(MemoryArena *Partition);
@@ -250,6 +253,16 @@ inline MemoryArena AllocatePartition(memory_index Size, void* Base)
     return result;
 }
 
+inline MemoryArena PlatformAllocatePartition(memory_index size)
+{
+    u8* mem = (u8*)PlatformAllocateMemory(size);
+    MemoryArena arena = {};
+    AllocatePartition(&arena,size,mem);
+    return arena;
+}
+
+/*
+//TODO(Ray):Remove this garbage causes a small memory leak due to when you release
 inline MemoryArena* PlatformAllocatePartition(memory_index Size)
 {
     memory_index SizeOfMP = sizeof(MemoryArena);
@@ -259,6 +272,7 @@ inline MemoryArena* PlatformAllocatePartition(memory_index Size)
     AllocatePartition(Header,Size - SizeOfMP, Mem + SizeOfMP);
     return Header;
 }
+*/
 
 #ifdef YOYOIMPL
 
@@ -387,6 +401,11 @@ void ClearToZero(void* Mem,u32 Size)
     {
         *Byte++ = 0;
     }
+}
+
+void* CopySize(void* src,void* dst, u32 Size)
+{
+    memcpy(src,dest,size);
 }
 
 //TODO(ray):Add memory alignment options here!!
