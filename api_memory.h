@@ -403,10 +403,11 @@ void ClearToZero(void* Mem,u32 Size)
     }
 }
 
-void* CopySize(void* src,void* dst, u32 Size)
+/*
+void CopySize(void* src,void* dst, u32 Size)
 {
-    memcpy(src,dest,size);
 }
+*/
 
 //TODO(ray):Add memory alignment options here!!
 void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams)
