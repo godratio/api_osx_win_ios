@@ -121,7 +121,7 @@ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,
 #ifdef YOYOIMPL
 
 namespace APIFileOptions {
-    char* data_dir = "";
+    char* data_dir = "/";
 }
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
