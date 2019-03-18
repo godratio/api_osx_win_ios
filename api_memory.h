@@ -116,6 +116,12 @@ inline MemoryArena PlatformAllocatePartition(memory_index Size);
 inline partition_push_params NoClear();
 inline char *PushCharString(MemoryArena *Partition, char *CharString);
 
+#define PushArrayA(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
+#define PushStructA(Partition,Type,...) (Type*)PushSizeA_(Partition,sizeof(Type),## __VA_ARGS__)
+#define PushSizeA(Partition,Size,...) PushSizeA_(Partition,Size,## __VA_ARGS__)
+
+void* PushSizeA_(MemoryArena* arena,memory_index size,partition_push_params params);
+    
 #if OSX
 #include <mach/mach_init.h>
 #include <mach/mach_vm.h>
@@ -224,7 +230,7 @@ inline void PlatformDeAllocateMemory(void* Memory, memory_index in_size)
 inline memory_index GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
 {
     memory_index AlignmentOffset = 0;
-    memory_index ResultPointer = (u64)Arena->base + Arena->used;
+    memory_index ResultPointer = (memory_index)Arena->base + Arena->used;
     memory_index AlignmentMask = Alignment - 1;
     if(ResultPointer & AlignmentMask)
     {
@@ -403,16 +409,8 @@ void ClearToZero(void* Mem,u32 Size)
     }
 }
 
-/*
-void CopySize(void* src,void* dst, u32 Size)
-{
-}
-*/
-
-//TODO(ray):Add memory alignment options here!!
 void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams)
 {
-    //Assert used < size
     Assert(Partition->used + Size <= Partition->size)
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
     {
@@ -420,6 +418,22 @@ void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams
     }
     void* result = (uint8_t*)Partition->base + Partition->used;
     Partition->used = Partition->used + Size;
+    return result;
+}
+
+//aligned only allocator
+void* PushSizeA_(MemoryArena* arena,memory_index size,partition_push_params params)
+{
+    memory_index offset = GetAlignmentOffset(arena,params.Alignment);
+    Assert(arena->used + (size + offset) <= arena->size);
+    if (TestFlag(params.Flags, PartitionFlag_ClearToZero))
+    {
+        ClearSize(arena, size);
+    }
+    
+    void* result = (void*)((uint8_t*)arena->base + (arena->used + offset));
+    //size += offset;
+    arena->used = arena->used + (size + offset);
     return result;
 }
 
