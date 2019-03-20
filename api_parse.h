@@ -96,15 +96,15 @@ static b32
 ParseBoolFromString(Yostr Test,MemoryArena *Memory)
 {
 	b32 Result = false;
-	if (Compare(*CreateStringFromLiteral("yes", Memory), Test))
+	if (Compare(CreateStringFromLiteral("yes", Memory), Test))
 	{
 		Result = true;
 	}
-	else if (Compare(*CreateStringFromLiteral("true", Memory), Test))
+	else if (Compare(CreateStringFromLiteral("true", Memory), Test))
 	{
 		Result = true;
 	}
-	else if (Compare(*CreateStringFromLiteral("1", Memory), Test))
+	else if (Compare(CreateStringFromLiteral("1", Memory), Test))
 	{
 		Result = true;
 	}

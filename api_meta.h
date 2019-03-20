@@ -2,7 +2,7 @@
 
 APIDEF var_type GetTypeForString(Yostr* String);
 
-APIDEF Yostr* GetStringForType(var_type VarType,MemoryArena* StringPartition);
+APIDEF Yostr GetStringForType(var_type VarType,MemoryArena* StringPartition);
 
 APIDEF void StartBlock(Yostr* StringToUse,MemoryArena* StringPartition);
 
@@ -27,10 +27,10 @@ APIDEF var_type GetTypeForString(Yostr* String)
     return var_type_string;
 }
 
-APIDEF Yostr* GetStringForType(var_type VarType,MemoryArena* StringPartition)
+APIDEF Yostr GetStringForType(var_type VarType,MemoryArena* StringPartition)
 {
 
-    Yostr* Result;
+    Yostr Result;
     switch(VarType)
     {
         case var_type_string:

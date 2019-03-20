@@ -140,7 +140,7 @@ namespace APIFileOptions {
         Assert(false);
     }
     String_GetLength_String(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
+    return AppendString(*CurrentDir,CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
 }
 
 dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively,bool get_full_path)
@@ -149,7 +149,7 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
     Result.Files = CreateVector(1000,sizeof(file_info));
     
     char* WildCard = "\\*";
-    Yostr* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard,StringMem), StringMem);
+    Yostr* WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
@@ -249,13 +249,13 @@ Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
 //TODO(ray):Verify this is big enough.
     u32 DirMaxSize = 1000;
-    Yostr* CurrentDir = AllocatEmptyString(Partition);
+    Yostr CurrentDir = AllocateEmptyString(Partition);
     PushSize(Partition,DirMaxSize);
-    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir->String, DirMaxSize))
+    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir.String, DirMaxSize))
     {
     }
-    CalculateStringLength(CurrentDir);
-    return AppendString(*CurrentDir,*CreateStringFromLiteral("/data/", Partition),Partition);
+    CalculateStringLength(&CurrentDir);
+    return AppendString(CurrentDir,CreateStringFromLiteral("/data/", Partition),Partition);
 }
 
  dir_files_result
@@ -265,7 +265,7 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     Result.Files = CreateVector(1000,sizeof(file_info));
     
     char* WildCard = "\\*";
-    Yostr* WildCardPath = AppendString(Path, *CreateStringFromLiteral(WildCard,StringMem), StringMem);
+    Yostr* WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
@@ -278,17 +278,17 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
         CFNumberRef valueNum = NULL;
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
-        Yostr* PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
-        char* End = PathToFile->String + PathToFile->Length - 1;
+        Yostr PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
+        char* End = PathToFile.String + PathToFile.Length - 1;
         u32 StepCount = 1;
         while(*(End - 1) != '/')
         {
             --End;
             ++StepCount;
         }
-        Yostr FileName = *CreateStringFromLength(End, StepCount, StringMem);
+        Yostr* FileName = CreateStringFromLength(End, StepCount, StringMem);
         file_info Info;
-        Info.Name = FileName;// CreateStringFromLiteral(FileName,StringMem);// ffd.cFileName;
+        Info.Name = *FileName;// CreateStringFromLiteral(FileName,StringMem);// ffd.cFileName;
         PushVectorElement(&Result.Files, &Info);
         if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, nullptr) && (valueNum != NULL))
         {
@@ -336,31 +336,31 @@ read_file_result IOSReadEntireFile(Yostr Path)
 	string* FinalPath;
 	if (Type == 0)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("/", Partition), Partition);
 	}
 	else if (Type == 1)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("material/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("material/", Partition), Partition);
 	}
 	else if (Type == 2)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("shaders/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("shaders/", Partition), Partition);
 	}
 	else if (Type == 3)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("textures/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("textures/", Partition), Partition);
 	}
 	else if (Type == 4)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("models/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("models/", Partition), Partition);
 	}
 	else if (Type == 5)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("textures/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("textures/", Partition), Partition);
 	}
 	else if (Type == 6)
 	{
-		FinalPath = AppendString(*DataPath, *CreateStringFromLiteral("lighting/", Partition), Partition);
+		FinalPath = AppendString(*DataPath, CreateStringFromLiteral("lighting/", Partition), Partition);
 	}
 
 	string* CurrentDir = AllocatEmptyString(Partition);
@@ -545,11 +545,11 @@ read_file_result PlatformReadEntireFile(Yostr* FileName)
 {
 	read_file_result Result;
 #if WINDOWS
-	Result = Win32ReadEntireFile(NullTerminate(*FileName).String);
+	Result = Win32ReadEntireFile((*FileName).String);
 #elif OSX
-    Result = OSXReadEntireFile(NullTerminate(*FileName).String);
+    Result = OSXReadEntireFile((*FileName).String);
 #elif IOS
-    Result = IOSReadEntireFile(NullTerminate(*FileName).String);
+    Result = IOSReadEntireFile((*FileName).String);
 #endif
 	return Result;
 }
@@ -559,20 +559,20 @@ read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, Memo
 	read_file_result Result;
 #if WINDOWS
 	string* AssetPath = BuildPathToAssets(Memory, Type);
-	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
-	*FinalPathToAsset = NullTerminate(*FinalPathToAsset);
+	string* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
+
 	Result = Win32ReadEntireFile(FinalPathToAsset->String);
 
 #elif OSX
 	Yostr* AssetPath = BuildPathToAssets(Memory, Type);
-	Yostr* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
-	NullTerminate(*FinalPathToAsset);
+	Yostr* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
+
 	Result = OSXReadEntireFile(*FinalPathToAsset);
 
 #elif IOS
 	Yostr* AssetPath = BuildPathToAssets(Memory,Type);
-	Yostr* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName, Memory), Memory);
-	NullTerminate(*FinalPathToAsset);
+	Yostr* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
+
 	Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
 	return Result;
@@ -583,20 +583,19 @@ read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, Mem
 	read_file_result Result;
 #if WINDOWS
 	string* AssetPath = BuildPathToAssets(Memory, Type);
-	string* FinalPathToAsset = AppendString(*AssetPath, *CreateStringFromLiteral(FileName->String, Memory), Memory);
-	*FinalPathToAsset = NullTerminate(*FinalPathToAsset);
+	string* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName->String, Memory), Memory);
+
 	Result = Win32ReadEntireFile(FinalPathToAsset->String);
 
 #elif OSX
     Yostr* AssetPath = BuildPathToAssets(Memory,Type);
-    Yostr* FinalPathToAsset = AppendString(*AssetPath,*CreateStringFromLiteral(FileName->String,Memory),Memory);
-    NullTerminate(*FinalPathToAsset);
+    Yostr* FinalPathToAsset = AppendString(*AssetPath,CreateStringFromLiteral(FileName->String,Memory),Memory);
     Result = OSXReadEntireFile(*FinalPathToAsset);
     
 #elif IOS
     Yostr* AssetPath = BuildPathToAssets(Memory,Type);
     Yostr* FinalPathToAsset = AppendString(*AssetPath,*FileName,Memory);
-    NullTerminate(*FinalPathToAsset);
+
     Result = IOSReadEntireFile(*FinalPathToAsset);
 #endif
 	return Result;

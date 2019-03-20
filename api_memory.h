@@ -284,8 +284,7 @@ inline MemoryArena* PlatformAllocatePartition(memory_index Size)
 
 void* GetPartitionPointer(MemoryArena Partition)
 {
-	void * Result = (uint8_t*)Partition.base + Partition.used;
-    return Result;
+    return (uint8_t*)Partition.base + Partition.used;
 }
  
 void FreeDuelMemoryPartion(duel_memory_partition* Partition)

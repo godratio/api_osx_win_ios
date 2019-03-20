@@ -2,6 +2,9 @@
 //TODO(Ray):Returning pointers here is pretty stupid me thinks deprecate these oneday.
 //Wrote this when I was a noob guy.
 
+//NOTE(Ray):Now this api will guarentee that any Yostr type returned is null terminated if you want non null terminated strings
+//figure it out later. Not a big deal to do that.
+
 #if !defined(API_STRINGS_H)
 /*
 author: Ray Garner 
@@ -66,19 +69,19 @@ APIDEF u32 String_GetLength_Char(char* String);
 
 APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength);
 
-APIDEF Yostr NullTerminate(Yostr Source);
+//APIDEF Yostr NullTerminate(Yostr Source);
 
-APIDEF Yostr* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory);
+//APIDEF Yostr* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory);
 
 //TODO(ray):Make a way to reclaim the memory from literals created here.
-APIDEF Yostr* CreateStringFromLiteral(char* String,MemoryArena* Memory);
+APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory);
 
 //TODO(Ray):Make a way to reclaim the memory from literals created here.
 //TODO(Ray):Allow to have the option to do the length check safely.
 //NOTE(Ray):This function requires you free your own memory once your done.
 APIDEF Yostr* String_Allocate(char* String);
 
-APIDEF Yostr* AllocatEmptyString(MemoryArena* Partition);
+APIDEF Yostr AllocateEmptyString(MemoryArena* Partition);
 
 APIDEF Yostr* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory);
 
@@ -109,8 +112,8 @@ APIDEF Yostr* String_PadRight(Yostr* String,char PadChar,u32 PadAmount,MemoryAre
 
 APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory);
 
-#define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
-#define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+#define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
+#define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
 
 #define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr->String,yostr->Length,arena)
 APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem);
@@ -121,7 +124,7 @@ APIDEF u32 CalculateCharLength(char* String);
 
 APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory);
 
-#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,CreateStringFromLiteral(Back,Memory),Memory)
 APIDEF void AppendStringAndAdvance(Yostr* Front,Yostr Back,MemoryArena* Memory);
 
 APIDEF Yostr* ElementIterator(fixed_element_size_list *Array);
@@ -139,7 +142,7 @@ APIDEF Yostr* API_String_Iterator(strings* StringArray);
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
 APIDEF fixed_element_size_list SplitString(Yostr Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false);
 #define MAX_FORMAT_STRING_SIZE 500
-APIDEF Yostr* FormatToString(char* StringBuffer,MemoryArena* StringMemory);
+APIDEF Yostr FormatToString(char* StringBuffer,MemoryArena* StringMemory);
 #include <stdarg.h>
 #include <stdio.h>
 //TODO(ray): Move this to a more proper place replace std::out
@@ -147,7 +150,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
 APIDEF void PlatformOutputInputPrompt(char* Buffer,b32 UseToggle,const char* FormatString,u32 _Dummy,...);
 void PlatformOutput(bool use_toggle,const char* FormatString,...);
 
-Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...);
+Yostr PlatformFormatString(MemoryArena *arena,char* format_string,...);
 
 #ifdef YOYOIMPL
 
@@ -221,47 +224,52 @@ APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength)
     return Length;
 }
 
-APIDEF Yostr NullTerminate(Yostr Source)
+APIDEF Yostr NullTerminate(Yostr str,MemoryArena* mem)
 {
+    char *term_ptr = (char*)PushSize(mem,1);
+    *term_ptr = '\0';
+    str.NullTerminated = true;
+    /*
     char* NullTerminatePoint = Source.String + Source.Length;
     *NullTerminatePoint = '\0';
     Source.NullTerminated = true;
-    return Source;
+    */
+    return str;
 }
 
-APIDEF Yostr* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory)
+/*
+APIDEF Yostr CreateStringFromLiteralConst(const char* String,MemoryArena* Memory)
 {
-    Yostr* Result = (Yostr*)PushSize(Memory,sizeof(Yostr));
-    Result->Length = 0;
+    Yostr Result = {};//(Yostr*)PushSize(Memory,sizeof(Yostr));
     char* At = (char*)String;
     void* StartPointer = GetPartitionPointer(*Memory);
 	while (*At)
     {
         char * StringPtr = (char*)PushSize(Memory,1);
         *StringPtr = *At;
-        Result->Length++;
+        Result.Length++;
         At++;
     }
-    Result->String = (char*)StartPointer;
+    Result.String = (char*)StartPointer;
     return Result;
 }
+*/
 
-//TODO(ray):Make a way to reclaim the memory from literals created here.
-APIDEF Yostr* CreateStringFromLiteral(char* String,MemoryArena* Memory)
+APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory)
 {
-    Yostr* Result = (Yostr*)PushSize(Memory,sizeof(Yostr));
-    Result->Length = 0;
+    Yostr Result = {};
     char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
 	while (*At)
     {
         char * StringPtr = (char*)PushSize(Memory,1);
         *StringPtr = *At;
-        Result->Length++;
+        Result.Length++;
         At++;
     }
-    Result->String = (char*)StartPointer;
-    return Result;
+    Result.String = (char*)StartPointer;
+
+    return NullTerminate(Result,Memory);
 }
 
 //TODO(Ray):Make a way to reclaim the memory from literals created here.
@@ -288,7 +296,7 @@ APIDEF Yostr* String_Allocate(char* String)
     return Result;
 }
 
-APIDEF Yostr* AllocatEmptyString(MemoryArena* Partition)
+APIDEF Yostr AllocateEmptyString(MemoryArena* Partition)
 {
     Assert(Partition);
     return CreateStringFromLiteral("",Partition);
@@ -369,7 +377,7 @@ APIDEF Yostr* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory
         Iterator++;
     }
     Result->String = (char*)StartPointer;
-    *Result = NullTerminate(*Result);
+    *Result = NullTerminate(*Result,Memory);
     return Result;
 }
 
@@ -476,7 +484,7 @@ APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,Memo
     }
     result.String = End;
     result.Length = StepCount;
-    result = NullTerminate(result);
+    result = NullTerminate(result,string_mem);
     return result;
 }
 
@@ -591,8 +599,8 @@ APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory)
     return String;
 }
 
-#define AppendStringToChar(Front,Back,Memory) AppendString(*CreateStringFromLiteral(Front,Memory),Back,Memory)
-#define AppendCharToString(Front,Back,Memory) AppendString(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+#define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
+#define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
 
 APIDEF u32 CalculateStringLength(Yostr* String)
 {
@@ -645,11 +653,11 @@ APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
         Iterations++;
     }
     Result->String = (char*)StartPointer;
-    *Result = NullTerminate(*Result);
+    *Result = NullTerminate(*Result,Memory);
     return Result;
 }
 
-#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,*CreateStringFromLiteral(Back,Memory),Memory)
+#define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,CreateStringFromLiteral(Back,Memory),Memory)
 APIDEF void AppendStringAndAdvance(Yostr* Front,Yostr Back,MemoryArena* Memory)
 {
     u32 Length = 0;
@@ -680,7 +688,7 @@ APIDEF void AppendStringAndAdvance(Yostr* Front,Yostr Back,MemoryArena* Memory)
 
     Front->String = (char*)StartPointer;
     Front->Length = Length;
-    *Front = NullTerminate(*Front);
+    *Front = NullTerminate(*Front,Memory);
 }
 
 APIDEF Yostr* ElementIterator(fixed_element_size_list *Array)
@@ -718,7 +726,7 @@ APIDEF Yostr* GetFromStringsByIndex(strings Strings, u32 Index)
 APIDEF strings API_String_Split(Yostr Source,char* Separator,duel_memory_partition* Memory)
 {
     strings Result = {0};
-    Source = NullTerminate(Source);
+//    Source = NullTerminate(Source,Memory);
     char* At = Source.String;
     char* Start  = At;
     b32 HasLastString = false;
@@ -900,7 +908,7 @@ APIDEF fixed_element_size_list SplitString(Yostr Source,char* Separator,MemoryAr
 //TODO(RAY):THIS IS GARBAGE USELESS what was I thinking.
 //need to have most of these functions easy to format strings.
 #define MAX_FORMAT_STRING_SIZE 500
-APIDEF Yostr* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
+APIDEF Yostr FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 {
 	char CharBuffer[MAX_FORMAT_STRING_SIZE];
 #if OSX
@@ -910,8 +918,7 @@ APIDEF Yostr* FormatToString(char* StringBuffer,MemoryArena* StringMemory)
 #elif WINDOWS
     sprintf_s(CharBuffer,StringBuffer);
 #endif
-    Yostr * Result = CreateStringFromLiteral(CharBuffer,StringMemory);
-    return Result;
+    return CreateStringFromLiteral(CharBuffer,StringMemory);
 }
 
 #include <stdarg.h>
@@ -953,7 +960,7 @@ void PlatformOutput(bool use_toggle,const char* FormatString,...)
 	va_end(List);
 }
 
-Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...)
+Yostr PlatformFormatString(MemoryArena *arena,char* format_string,...)
 {
     
     va_list list;
@@ -966,7 +973,7 @@ Yostr* PlatformFormatString(MemoryArena *arena,char* format_string,...)
 #elif IOS
     vsprintf(TextBuffer,format_string,list);
 #endif
-    Yostr* result = CreateStringFromLiteral(TextBuffer,arena);
+    Yostr result = CreateStringFromLiteral(TextBuffer,arena);
     va_end(list);
     return result;
 }
