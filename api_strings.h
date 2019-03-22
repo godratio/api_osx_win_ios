@@ -115,7 +115,7 @@ APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory);
 #define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
 
-#define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr->String,yostr->Length,arena)
+#define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr.String,yostr.Length,arena)
 APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem);
 
 APIDEF u32 CalculateStringLength(Yostr* String);

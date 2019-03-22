@@ -132,15 +132,15 @@ namespace APIFileOptions {
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
 //TODO(ray):Verify this is big enough. never big enough
     u32 DirMaxSize = 1000;
-    Yostr* CurrentDir = AllocatEmptyString(Partition);
+    Yostr CurrentDir = AllocateEmptyString(Partition);
     PushSize(Partition,DirMaxSize);
-    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir->String, DirMaxSize))
+    if (!CFURLGetFileSystemRepresentation(resourcesURL, TRUE, (u8 *)CurrentDir.String, DirMaxSize))
     {
 // error
         Assert(false);
     }
-    String_GetLength_String(CurrentDir);
-    return AppendString(*CurrentDir,CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
+    String_GetLength_String(&CurrentDir);
+    return AppendString(CurrentDir,CreateStringFromLiteral(APIFileOptions::data_dir, Partition),Partition);
 }
 
 dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively,bool get_full_path)
@@ -172,25 +172,25 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
         CFNumberRef valueNum = NULL;
         CFMutableStringRef fileName =  CFStringCreateMutableCopy(kCFAllocatorDefault, 0, CFURLGetString(URL));
         const char *cs = CFStringGetCStringPtr( fileName, kCFStringEncodingMacRoman ) ;
-        Yostr* PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
-        Yostr* FileName;
+        Yostr PathToFile = CreateStringFromLiteral((char*)cs, StringMem);
+        Yostr FileName;
         if(get_full_path)
         {
             FileName = PathToFile;
             //remove file prefex
-            while(*(FileName->String) != '/')//after we get past the file:/than we are ready
+            while(*(FileName.String) != '/')//after we get past the file:/than we are ready
             {
-                ++FileName->String;
-                FileName->Length--;
+                ++FileName.String;
+                FileName.Length--;
             }
         }
         else
         {
-            *FileName = GetFilenameFromPath(PathToFile,StringMem);          
+            FileName = GetFilenameFromPath(PathToFile,StringMem);
         }
 
         file_info Info;
-        Info.Name = *FileName;
+        Info.Name = FileName;
         PushVectorElement(&Result.Files, &Info);
         if (CFURLCopyResourcePropertyForKey(URL, kCFURLFileSizeKey, &valueNum, 0) && (valueNum != NULL))
         {
