@@ -41,6 +41,8 @@ typedef __darwin_size_t memory_index;
 typedef intptr_t memory_index;
 #endif
 
+//TODO(Ray):Use compiler intrinsic where available ie..Clang GCC MSVC
+//It seems that this may get optimized out of some compilers. also annoying warning.
 #define Assert(Expression) if(!(Expression)){*(int *)0 = 0;};
 #define ArrayCount(Array) sizeof(Array) / sizeof((Array)[0])
 
