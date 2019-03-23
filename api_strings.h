@@ -76,20 +76,15 @@ APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength);
 //TODO(ray):Make a way to reclaim the memory from literals created here.
 APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory);
 
-//TODO(Ray):Make a way to reclaim the memory from literals created here.
-//TODO(Ray):Allow to have the option to do the length check safely.
-//NOTE(Ray):This function requires you free your own memory once your done.
-APIDEF Yostr* String_Allocate(char* String);
-
 APIDEF Yostr AllocateEmptyString(MemoryArena* Partition);
 
-APIDEF Yostr* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory);
+APIDEF Yostr CreateStringFromToChar(char* String,char* End, MemoryArena* Memory);
 
 APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory);
 
-APIDEF Yostr* CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory);
+APIDEF Yostr CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory);
 
-APIDEF Yostr* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory);
+APIDEF Yostr CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory);
 
 APIDEF int Compare(Yostr A, Yostr B);
 
@@ -102,15 +97,15 @@ APIDEF b32 CompareChars(char *A, char *B);
 //TODO(ray): Make sure this is never used in game.
 APIDEF void PrintStringToConsole(Yostr String);
 
-APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false);
+APIDEF Yostr GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter = false);
 
-APIDEF Yostr* StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem);
+APIDEF Yostr StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem);
 
-APIDEF Yostr* StripAndOutputExtension(Yostr* FileNameOrPathWithExtension,Yostr* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false);
+APIDEF Yostr StripAndOutputExtension(Yostr* FileNameOrPathWithExtension,Yostr* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter = false);
 
-APIDEF Yostr* String_PadRight(Yostr* String,char PadChar,u32 PadAmount,MemoryArena* Memory);
+APIDEF Yostr String_PadRight(Yostr String,char PadChar,u32 PadAmount,MemoryArena* Memory);
 
-APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory);
+APIDEF Yostr EnforceMinSize(Yostr String,u32 MinSize,MemoryArena* Memory);
 
 #define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
@@ -125,7 +120,7 @@ APIDEF u32 CalculateStringLength(Yostr* String);
 
 APIDEF u32 CalculateCharLength(char* String);
 
-APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory);
+APIDEF Yostr AppendString(Yostr Front,Yostr Back,MemoryArena* Memory);
 
 #define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,CreateStringFromLiteral(Back,Memory),Memory)
 APIDEF void AppendStringAndAdvance(Yostr* Front,Yostr Back,MemoryArena* Memory);
@@ -140,10 +135,6 @@ APIDEF strings API_String_Split(Yostr Source,char* Separator,duel_memory_partiti
 
 APIDEF Yostr* API_String_Iterator(strings* StringArray);
 
-//TODO(ray): Old function can do this much better.  REDO THIS!
-//TODO(ray): This will fail in the case there is no seperator present in the string.
-//Note(ray): The data type fixed_element... does not make sense should rename rework.
-APIDEF fixed_element_size_list SplitString(Yostr Source,char* Separator,MemoryArena *Partition,bool SeparatorIsNotLastChar = false);
 #define MAX_FORMAT_STRING_SIZE 500
 APIDEF Yostr FormatToString(char* StringBuffer,MemoryArena* StringMemory);
 #include <stdarg.h>
@@ -170,6 +161,7 @@ api__inline b32 IsDigit(char Char)
 //NOTE(ray):Assumes string is already null terminated.
 APIDEF u32 String_GetLength_String(Yostr* String)
 {
+    Assert(String->NullTerminated);
     u32 Length = 0;
     char* At = String->String;
     while(*At)
@@ -183,6 +175,7 @@ APIDEF u32 String_GetLength_String(Yostr* String)
 
 APIDEF u32 String_GetLengthSafely_String(Yostr* String,u32 SafetyLength)
 {
+    Assert(String->NullTerminated);
     u32 Length = 0;
     char* At = String->String;
     while(*At)
@@ -271,10 +264,63 @@ APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory)
         At++;
     }
     Result.String = (char*)StartPointer;
-
     return NullTerminate(Result,Memory);
 }
 
+APIDEF Yostr CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
+{
+    Yostr Result = {};
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StringPtr = 0;
+    while (*At != *End)
+    {
+        StringPtr = (char*)PushSize(Memory, 1);
+        *StringPtr = *At;
+        Result.Length++;
+        At++;
+    }
+    Result.String = (char*)StartPointer;
+    return NullTerminate(Result,Memory);
+}
+
+APIDEF Yostr CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory)
+{
+    Yostr Result = {};
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StringPtr = 0;
+    while (At != End)
+    {
+        StringPtr = (char*)PushSize(Memory, 1);
+        *StringPtr = *At;
+        Result.Length++;
+        At++;
+    }
+    Result.String = (char*)StartPointer;
+    return NullTerminate(Result,Memory);
+}
+
+APIDEF Yostr CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory)
+{
+    Yostr Result = {};
+    char* At = String;
+    void* StartPointer = GetPartitionPointer(*Memory);
+    char* StringPtr = 0;
+    u32 Iterator = 0;
+    while (Iterator < Length)
+    {
+        StringPtr = (char*)PushSize(Memory,1);
+        *StringPtr = *At;
+        Result.Length++;
+        At++;
+        Iterator++;
+    }
+    Result.String = (char*)StartPointer;
+    return NullTerminate(Result,Memory);
+}
+
+/*
 //TODO(Ray):Make a way to reclaim the memory from literals created here.
 //TODO(Ray):Allow to have the option to do the length check safely.
 //NOTE(Ray):This function requires you free your own memory once your done.
@@ -283,7 +329,7 @@ APIDEF Yostr* String_Allocate(char* String)
     u32 Length = String_GetLength_Char(String);
     void* Mem = PlatformAllocateMemory(sizeof(Yostr) + Length);
     Yostr* Result = (Yostr*)Mem;
-    Result->Length = 0;
+    Result.Length = 0;
     char* At = String;
     char* StartPointer = (char*)Mem + sizeof(Yostr);
     char* StringPtr = (char*)Mem + sizeof(Yostr);
@@ -291,36 +337,19 @@ APIDEF Yostr* String_Allocate(char* String)
     {
         *StringPtr = *At;
         StringPtr++;
-//        Result->Length++;
+//        Result.Length++;
         At++;
     }
-    Result->String = StartPointer;
-    Result->Length = Length;
+    Result.String = StartPointer;
+    Result.Length = Length;
     return Result;
 }
+*/
 
 APIDEF Yostr AllocateEmptyString(MemoryArena* Partition)
 {
     Assert(Partition);
     return CreateStringFromLiteral("",Partition);
-}
-
-APIDEF Yostr* CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
-{
-    Yostr* Result = (Yostr*)PushSize(Memory, sizeof(Yostr));
-    
-    char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
-    while (*At != *End)
-    {
-        StringPtr = (char*)PushSize(Memory, 1);
-        *StringPtr = *At;
-        Result->Length++;
-        At++;
-    }
-    Result->String = (char*)StartPointer;
-    return Result;
 }
 
 APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
@@ -342,45 +371,6 @@ APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End
     Result->String = (char*)StartPointer;
     
     //*Result = NullTerminate(*Result);
-    return Result;
-}
-
-APIDEF Yostr* CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory)
-{
-    Yostr* Result = (Yostr*)PushSize(Memory, sizeof(Yostr));
-    
-    char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
-    while (At != End)
-    {
-        StringPtr = (char*)PushSize(Memory, 1);
-        *StringPtr = *At;
-        Result->Length++;
-        At++;
-    }
-    Result->String = (char*)StartPointer;
-    return Result;
-}
-
-APIDEF Yostr* CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory)
-{
-    Yostr* Result = (Yostr*)PushSize(Memory,sizeof(Yostr));
-    
-    char* At = String;
-    void* StartPointer = GetPartitionPointer(*Memory);
-    char* StringPtr = 0;//(char*)Memory;
-    u32 Iterator = 0;
-    while (Iterator < Length)
-    {
-        StringPtr = (char*)PushSize(Memory,1);
-        *StringPtr = *At;
-        Result->Length++;
-        At++;
-        Iterator++;
-    }
-    Result->String = (char*)StartPointer;
-    *Result = NullTerminate(*Result,Memory);
     return Result;
 }
 
@@ -491,7 +481,7 @@ APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,Memo
     return result;
 }
 
-APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter)
+APIDEF Yostr GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem,b32 KeepFileExtensionDelimiter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
         //walk back from end of string till we hit a '.'
@@ -514,11 +504,11 @@ APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *Strin
             break;
         }
     }
-    Yostr* ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
+    Yostr ExtensionName = CreateStringFromLength(End, StepsTaken, StringMem);
     return ExtensionName;
 }
 
-APIDEF Yostr* StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem)
+APIDEF Yostr StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
     //walk back from end of string till we hit a '.'
@@ -537,33 +527,29 @@ APIDEF Yostr* StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *Str
     return CreateStringFromToChar(&FileNameOrPathWithExtension->String[0], &End[0], StringMem);
 }
 
-APIDEF Yostr* StripAndOutputExtension(Yostr* FileNameOrPathWithExtension,Yostr* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter)
+APIDEF Yostr StripAndOutputExtension(Yostr* FileNameOrPathWithExtension,Yostr* Extension,MemoryArena *StringMem,b32 KeepFileExtensionDelimeter)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
-    
-        Yostr* Result = StripExtension(FileNameOrPathWithExtension, StringMem);
-    Yostr* ExtensionName = GetExtension(FileNameOrPathWithExtension, StringMem,KeepFileExtensionDelimeter);
-    //string TerminatedExtensionName = NullTerminate(*ExtensionName);
-    *Extension = *ExtensionName;
+    Yostr Result = StripExtension(FileNameOrPathWithExtension, StringMem);
+    Yostr ExtensionName = GetExtension(FileNameOrPathWithExtension, StringMem,KeepFileExtensionDelimeter);
+    *Extension = ExtensionName;
     return Result;
 }
 
-APIDEF Yostr* String_PadRight(Yostr* String,char PadChar,u32 PadAmount,MemoryArena* Memory)
+APIDEF Yostr String_PadRight(Yostr String,char PadChar,u32 PadAmount,MemoryArena* Memory)
 {
 	//TODO(RAY):LENGTH IS WRONG
-    Yostr* Result = PushStruct(Memory,Yostr);
-	Result->String = (char*)PushSize(Memory,String->Length + PadAmount);
-    Result->Length = PadAmount + String->Length;
-//    char* At = Result->String;
-    char* SourceString = String->String;
-//    while(*At++)
-    for(u32 StringIndex = 0;StringIndex < Result->Length;++StringIndex)
+    Yostr Result = {};
+	Result.String = (char*)PushSize(Memory,String.Length + PadAmount);
+    Result.Length = PadAmount + String.Length;
+    char* SourceString = String.String;
+    for(u32 StringIndex = 0;StringIndex < Result.Length;++StringIndex)
     {
-        char* At = Result->String + StringIndex;   
-        if(StringIndex > String->Length - 1)
+        char* At = Result.String + StringIndex;
+        if(StringIndex > String.Length - 1)
         {
             *At = PadChar;
-            if(StringIndex <= (String->Length + PadAmount))
+            if(StringIndex <= (String.Length + PadAmount))
             {
                 At++;
                 *At = '\0';
@@ -577,36 +563,36 @@ APIDEF Yostr* String_PadRight(Yostr* String,char PadChar,u32 PadAmount,MemoryAre
     return Result;
 }
 
-APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory)
+APIDEF Yostr EnforceMinSize(Yostr String,u32 MinSize,MemoryArena* Memory)
 {
-    if(String->Length < MinSize)
+    Yostr result = {};
+    if(String.Length < MinSize)
     {
-        int Diff = MinSize - String->Length;
-        String = String_PadRight(String,' ',Diff,Memory);
+        int Diff = MinSize - String.Length;
+        result = String_PadRight(String,' ',Diff,Memory);
     }
-    else if(String->Length > MinSize)
+    else if(String.Length > MinSize)
     {
         u32 Count = 0;
-        char* At = String->String;
+        char* At = String.String;
 
         while(*At++)
         {
             if(Count < MinSize + 2)
             {
-                String->Length = MinSize;
+                String.Length = MinSize;
                 *At = '\0';
             }
             Count++;
         }
+        result = String;
     }
-    return String;
+    return result;
 }
-
-#define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
-#define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
 
 APIDEF u32 CalculateStringLength(Yostr* String)
 {
+    Assert(String->NullTerminated)
     u32 Length = 0;
     char* At = String->String;
     while(*At)
@@ -630,18 +616,20 @@ APIDEF u32 CalculateCharLength(char* String)
     return Length;
 }
 
-APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
+#define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
+#define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
+
+APIDEF Yostr AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
 {
-    Yostr *Result = PushStruct(Memory,Yostr);
+    Yostr Result = {};
     void* StartPointer = GetPartitionPointer(*Memory);
-    
     char* At = Front.String;
     u32 Iterations = 0;
     while(*At && Iterations < Front.Length)
     {
         char* StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
-        Result->Length++;
+        Result.Length++;
         At++;
         Iterations++;
     }
@@ -651,13 +639,12 @@ APIDEF Yostr* AppendString(Yostr Front,Yostr Back,MemoryArena* Memory)
     {
         char* StrPtr = (char*)PushSize(Memory,1);
         *StrPtr = *At;
-        Result->Length++;
+        Result.Length++;
         At++;
         Iterations++;
     }
-    Result->String = (char*)StartPointer;
-    *Result = NullTerminate(*Result,Memory);
-    return Result;
+    Result.String = (char*)StartPointer;
+    return NullTerminate(Result,Memory);
 }
 
 #define AppendCharToStringAndAdvace(Front,Back,Memory) AppendStringAndAdvance(Front,CreateStringFromLiteral(Back,Memory),Memory)
@@ -810,7 +797,7 @@ APIDEF Yostr* API_String_Iterator(strings* StringArray)
     }
 }
 
-
+/*
 //TODO(ray): Old function can do this much better.  REDO THIS!
 //TODO(ray): This will fail in the case there is no seperator present in the string.
 //Note(ray): The data type fixed_element... does not make sense should rename rework.
@@ -907,7 +894,8 @@ APIDEF fixed_element_size_list SplitString(Yostr Source,char* Separator,MemoryAr
     Result.Head = Result.Sentinal;
     return Result;
 }
- 
+*/
+
 //TODO(RAY):THIS IS GARBAGE USELESS what was I thinking.
 //need to have most of these functions easy to format strings.
 #define MAX_FORMAT_STRING_SIZE 500

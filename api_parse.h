@@ -249,6 +249,7 @@ static f64 ParseFloat(char* String)
     return Result;
 }
 
+/*
 //Note(ray):The bit operations will need to be reversed for little endian machines.
 static float_basis
 GetFloatBasis(MemoryArena *Partition, Yostr* FloatString)
@@ -383,7 +384,7 @@ GetFloatBasis(MemoryArena *Partition, Yostr* FloatString)
     
     return Result;
 }
-
+*/
 /*
 static f32
 ParseFloat(MemoryArena *Partition, string* FloatString)

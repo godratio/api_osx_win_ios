@@ -31,7 +31,7 @@ enum token_type
 struct token
 {
     token_type Type;
-    Yostr* Data;
+    Yostr Data;
 };
 
 struct tokenizer
@@ -189,7 +189,7 @@ vector Tokens;
 
  b32 MatchToken(token Token,Yostr* Test)
 {
-    if(Compare(*Token.Data,*Test))
+    if(Compare(Token.Data,*Test))
     {
         return true;
     }
@@ -447,7 +447,7 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
         if(Token.Type == Token_Identifier)
         {
             csv_field Field;
-            Field.Text = *Token.Data;
+            Field.Text = Token.Data;
             PushVectorElement(&CurrentLine->Fields,&Field);
         }
         else if(Token.Type == Token_ReturnCarriage || Token.Type == Token_NewLine)
@@ -553,14 +553,14 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
     cfg_entry EntryCanidate;
     if(RequireToken(Token, Token_Identifier))
     {
-        EntryCanidate.Key = *Token.Data;
+        EntryCanidate.Key = Token.Data;
         Token = GetCFGToken(Tokenizer,Memory);
         if(Token.Type == Token_Colon)
         {
             Token = GetCFGToken(Tokenizer,Memory);
             if(Token.Type == Token_String)
             {
-                EntryCanidate.Text = *Token.Data;
+                EntryCanidate.Text = Token.Data;
                 PushVectorElement(&Block->Entries, &EntryCanidate);
                 ParseConfigKeyValues(Block,Tokenizer, Memory);
             }
@@ -582,10 +582,10 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
 #define MAX_BLOCKS 100
  void ParseConfigBlock(cfg_data* Data,tokenizer* Tokenizer,token NameToken,MemoryArena *Memory)
 {
-    Yostr* TaskName = NameToken.Data;
+    Yostr TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
-    Block->Name = *TaskName;
+    Block->Name = TaskName;
     Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
@@ -594,10 +594,10 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
  void ParseDefBlock(cfg_data* Data,tokenizer* Tokenizer,MemoryArena *Memory)
 {
     token NameToken = GetCFGToken(Tokenizer,Memory);
-    Yostr* TaskName = NameToken.Data;
+    Yostr TaskName = NameToken.Data;
     
     cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
-    Block->Name = *TaskName;
+    Block->Name = TaskName;
     Block->IsDef = true;
     Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
     ParseConfigKeyValues(Block,Tokenizer, Memory);
