@@ -115,6 +115,9 @@ APIDEF Yostr* EnforceMinSize(Yostr* String,u32 MinSize,MemoryArena* Memory);
 #define AppendStringToChar(Front,Back,Memory) AppendString(CreateStringFromLiteral(Front,Memory),Back,Memory)
 #define AppendCharToString(Front,Back,Memory) AppendString(Front,CreateStringFromLiteral(Back,Memory),Memory)
 
+//TODO(Ray):Will remove this no need to take in yostrptr.
+#define GetFilenameFromPathYostrPtr(yostr,arena)  GetFilenameFromPathChar(yostr->String,yostr->Length,arena)
+#define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr.String,yostr.Length,arena)
 #define GetFilenameFromPath(yostr,arena)  GetFilenameFromPathChar(yostr.String,yostr.Length,arena)
 APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem);
 
@@ -518,16 +521,16 @@ APIDEF Yostr* GetExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *Strin
 APIDEF Yostr* StripExtension(Yostr* FileNameOrPathWithExtension,MemoryArena *StringMem)
 {
     Assert(FileNameOrPathWithExtension->Length > 1)
-    
-        //walk back from end of string till we hit a '.'
+    //walk back from end of string till we hit a '.'
     char* End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length - 1;
-    u32 StepCount = 1;
+    u32 StepCount = 0;
     while (*End != '.')
     {
         --End;
-        if (StepCount++ > FileNameOrPathWithExtension->Length)
+        if (StepCount++ >= FileNameOrPathWithExtension->Length - 2)
         {
-            //TODO(ray):Log this as an error?
+            //IF we didnt hit a . we will return the original name as is
+            End = FileNameOrPathWithExtension->String + FileNameOrPathWithExtension->Length;
             break;
         }
     }

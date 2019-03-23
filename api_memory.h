@@ -229,6 +229,7 @@ inline void PlatformDeAllocateMemory(void* Memory, memory_index in_size)
 
 inline memory_index GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment)
 {
+    if(Alignment == 0)return 0;
     memory_index AlignmentOffset = 0;
     memory_index ResultPointer = (memory_index)Arena->base + Arena->used;
     memory_index AlignmentMask = Alignment - 1;
