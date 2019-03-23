@@ -74,7 +74,7 @@ struct PlatformFilePointer
 #include <CoreFoundation/CoreFoundation.h>
 
 //Note(ray): User app needs to include core foundations need to do something about that.
- Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type);
+ Yostr BuildPathToAssets(MemoryArena *Partition,u32 Type);
 
  dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recursively = false);
 
@@ -85,7 +85,7 @@ struct PlatformFilePointer
 
 #if IOS
 #include <mach/mach_init.h>
- Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type);
+ Yostr BuildPathToAssets(MemoryArena *Partition,u32 Type);
  dir_files_result IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem);
 
  read_file_result IOSReadEntireFile(char* Path);
@@ -95,7 +95,7 @@ struct PlatformFilePointer
 
 #if WINDOWS
 #include <Windows.h>
- Yostr* BuildPathToAssets(MemoryArena* Partition, u32 Type);
+ Yostr BuildPathToAssets(MemoryArena* Partition, u32 Type);
  dir_files_result Win32GetAllFilesInDir(string Path, MemoryArena* StringMem);
 
  read_file_result Win32ReadEntireFile(char* path);k
@@ -126,7 +126,7 @@ namespace APIFileOptions {
 #if OSX
 #include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
- Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+ Yostr BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -149,7 +149,7 @@ dir_files_result OSXGetAllFilesInDir(Yostr Path,MemoryArena *StringMem,bool recu
     Result.Files = CreateVector(1000,sizeof(file_info));
     
     char* WildCard = "\\*";
-    Yostr* WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
+//    Yostr WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
@@ -243,7 +243,7 @@ read_file_result OSXReadEntireFile(Yostr Path)
 #include <mach/mach_init.h>
 #include <CoreFoundation/CoreFoundation.h>
 //Note(ray): User app needs to include core foundations need to do something about that.
-Yostr* BuildPathToAssets(MemoryArena *Partition,u32 Type)
+Yostr BuildPathToAssets(MemoryArena *Partition,u32 Type)
 {
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
@@ -265,7 +265,7 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     Result.Files = CreateVector(1000,sizeof(file_info));
     
     char* WildCard = "\\*";
-    Yostr* WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
+//    Yostr WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
     CFAllocatorRef alloc = CFAllocatorGetDefault();
     char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
@@ -564,16 +564,16 @@ read_file_result PlatformReadEntireFileWithAssets(char* FileName, u32 Type, Memo
 	Result = Win32ReadEntireFile(FinalPathToAsset->String);
 
 #elif OSX
-	Yostr* AssetPath = BuildPathToAssets(Memory, Type);
-	Yostr* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
+	Yostr AssetPath = BuildPathToAssets(Memory, Type);
+	Yostr FinalPathToAsset = AppendString(AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
 
-	Result = OSXReadEntireFile(*FinalPathToAsset);
+	Result = OSXReadEntireFile(FinalPathToAsset);
 
 #elif IOS
-	Yostr* AssetPath = BuildPathToAssets(Memory,Type);
-	Yostr* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
+	Yostr AssetPath = BuildPathToAssets(Memory,Type);
+	Yostr FinalPathToAsset = AppendString(AssetPath, CreateStringFromLiteral(FileName, Memory), Memory);
 
-	Result = IOSReadEntireFile(*FinalPathToAsset);
+	Result = IOSReadEntireFile(FinalPathToAsset);
 #endif
 	return Result;
 }
@@ -584,19 +584,15 @@ read_file_result PlatformReadEntireFileWithAssets(Yostr* FileName, u32 Type, Mem
 #if WINDOWS
 	string* AssetPath = BuildPathToAssets(Memory, Type);
 	string* FinalPathToAsset = AppendString(*AssetPath, CreateStringFromLiteral(FileName->String, Memory), Memory);
-
 	Result = Win32ReadEntireFile(FinalPathToAsset->String);
-
 #elif OSX
-    Yostr* AssetPath = BuildPathToAssets(Memory,Type);
-    Yostr* FinalPathToAsset = AppendString(*AssetPath,CreateStringFromLiteral(FileName->String,Memory),Memory);
-    Result = OSXReadEntireFile(*FinalPathToAsset);
-    
+    Yostr AssetPath = BuildPathToAssets(Memory,Type);
+    Yostr FinalPathToAsset = AppendString(AssetPath,CreateStringFromLiteral(FileName->String,Memory),Memory);
+    Result = OSXReadEntireFile(FinalPathToAsset);
 #elif IOS
-    Yostr* AssetPath = BuildPathToAssets(Memory,Type);
-    Yostr* FinalPathToAsset = AppendString(*AssetPath,*FileName,Memory);
-
-    Result = IOSReadEntireFile(*FinalPathToAsset);
+    Yostr AssetPath = BuildPathToAssets(Memory,Type);
+    Yostr FinalPathToAsset = AppendString(AssetPath,*FileName,Memory);
+    Result = IOSReadEntireFile(FinalPathToAsset);
 #endif
 	return Result;
 }
@@ -618,14 +614,14 @@ dir_files_result PlatformGetAllAssetFilesInDir(u32 Type, MemoryArena* StringMem,
 {
 	dir_files_result Result;
 
-	Yostr* Path = BuildPathToAssets(StringMem,Type);
+	Yostr Path = BuildPathToAssets(StringMem,Type);
 
 #if WINDOWS
-	Result = Win32GetAllFilesInDir(*Path, StringMem);
+	Result = Win32GetAllFilesInDir(Path, StringMem);
 #elif OSX
-    Result = OSXGetAllFilesInDir(*Path, StringMem,recursively,get_full_path);
+    Result = OSXGetAllFilesInDir(Path, StringMem,recursively,get_full_path);
 #elif IOS
-    Result = IOSGetAllFilesInDir(*Path, StringMem);
+    Result = IOSGetAllFilesInDir(Path, StringMem);
 #endif
 	return Result;
 }
