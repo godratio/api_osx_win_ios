@@ -13,14 +13,14 @@ APIDEF void DeclareAndAssignVariable(Yostr* StringToUse,Yostr* VarName, Yostr* V
 APIDEF void StartStructBlock(Yostr* StringToUse,Yostr StructName,MemoryArena *StringPartition);
 
 #ifdef YOYOIMPL
-char* WhiteSpaceText = " ";
-char* StructText = "struct";
-char* OpenBraceText = "{";
-char* CloseBraceText = "}";
-char* SemiColonText = ";";
-char* NewLineText = "\n";
-char* CTypeCharPtrText = "char*";
-char* EqualsText = "=";
+const char* WhiteSpaceText = " ";
+const char* StructText = "struct";
+const char* OpenBraceText = "{";
+const char* CloseBraceText = "}";
+const char* SemiColonText = ";";
+const char* NewLineText = "\n";
+const char* CTypeCharPtrText = "char*";
+const char* EqualsText = "=";
 
 APIDEF var_type GetTypeForString(Yostr* String)
 {

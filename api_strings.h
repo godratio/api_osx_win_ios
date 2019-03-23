@@ -26,7 +26,6 @@ api_strings  - public domain string handling -
 #include <stdint.h>
 #include <stdio.h>
 #include "api_memory.h"
-
 struct Yostr
 {
     u32 NullTerminated;
@@ -74,25 +73,25 @@ APIDEF u32 String_GetLengthSafely_Char(char* String,u32 SafetyLength);
 //APIDEF Yostr* CreateStringFromLiteralConst(const char* String,MemoryArena* Memory);
 
 //TODO(ray):Make a way to reclaim the memory from literals created here.
-APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory);
+APIDEF Yostr CreateStringFromLiteral(const char* String,MemoryArena* Memory);
 
 APIDEF Yostr AllocateEmptyString(MemoryArena* Partition);
 
-APIDEF Yostr CreateStringFromToChar(char* String,char* End, MemoryArena* Memory);
+APIDEF Yostr CreateStringFromToChar(const char* String,const char* End, MemoryArena* Memory);
 
-APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory);
+APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(const char* String,const char* End,duel_memory_partition* Memory);
 
-APIDEF Yostr CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory);
+APIDEF Yostr CreateStringFromToPointer(const char* String,const char* End, MemoryArena* Memory);
 
-APIDEF Yostr CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory);
+APIDEF Yostr CreateStringFromLength(const char* String,u32 Length,MemoryArena* Memory);
 
 APIDEF int Compare(Yostr A, Yostr B);
 
-APIDEF int CompareStringtoChar(Yostr A, char* B);
+APIDEF int CompareStringtoChar(Yostr A,const char* B);
  
-APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations);
+APIDEF int CompareCharToChar(const char* A,const char* B,u32 MaxIterations);
 
-APIDEF b32 CompareChars(char *A, char *B);
+APIDEF b32 CompareChars(const char *A,const char *B);
 
 //TODO(ray): Make sure this is never used in game.
 APIDEF void PrintStringToConsole(Yostr String);
@@ -251,10 +250,10 @@ APIDEF Yostr CreateStringFromLiteralConst(const char* String,MemoryArena* Memory
 }
 */
 
-APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory)
+APIDEF Yostr CreateStringFromLiteral(const char* String,MemoryArena* Memory)
 {
     Yostr Result = {};
-    char* At = String;
+    const char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
 	while (*At)
     {
@@ -267,10 +266,10 @@ APIDEF Yostr CreateStringFromLiteral(char* String,MemoryArena* Memory)
     return NullTerminate(Result,Memory);
 }
 
-APIDEF Yostr CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
+APIDEF Yostr CreateStringFromToChar(const char* String,const char* End, MemoryArena* Memory)
 {
     Yostr Result = {};
-    char* At = String;
+    const char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
     char* StringPtr = 0;
     while (*At != *End)
@@ -284,10 +283,10 @@ APIDEF Yostr CreateStringFromToChar(char* String,char* End, MemoryArena* Memory)
     return NullTerminate(Result,Memory);
 }
 
-APIDEF Yostr CreateStringFromToPointer(char* String, char* End, MemoryArena* Memory)
+APIDEF Yostr CreateStringFromToPointer(const char* String,const char* End, MemoryArena* Memory)
 {
     Yostr Result = {};
-    char* At = String;
+    const char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
     char* StringPtr = 0;
     while (At != End)
@@ -301,10 +300,10 @@ APIDEF Yostr CreateStringFromToPointer(char* String, char* End, MemoryArena* Mem
     return NullTerminate(Result,Memory);
 }
 
-APIDEF Yostr CreateStringFromLength(char* String,u32 Length,MemoryArena* Memory)
+APIDEF Yostr CreateStringFromLength(const char* String,u32 Length,MemoryArena* Memory)
 {
     Yostr Result = {};
-    char* At = String;
+    const char* At = String;
     void* StartPointer = GetPartitionPointer(*Memory);
     char* StringPtr = 0;
     u32 Iterator = 0;
@@ -352,11 +351,11 @@ APIDEF Yostr AllocateEmptyString(MemoryArena* Partition)
     return CreateStringFromLiteral("",Partition);
 }
 
-APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(char* String, char* End,duel_memory_partition* Memory)
+APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(const char* String,const char* End,duel_memory_partition* Memory)
 {
     Yostr* Result = (Yostr*)PushSize(&Memory->FixedSized, sizeof(Yostr));
     
-    char* At = String;
+    const char* At = String;
     void* StartPointer = GetPartitionPointer(Memory->VariableSized);
     char* StringPtr = 0;//(char*)Memory;
     while (At != End)
@@ -405,10 +404,10 @@ APIDEF int Compare(Yostr A, Yostr B)
     return true;
 }
 
-APIDEF int CompareStringtoChar(Yostr A, char* B)
+APIDEF int CompareStringtoChar(Yostr A,const char* B)
 {
     char* APtr = A.String;
-    char* BPtr = B;
+    const char* BPtr = B;
         
     u32 MaxIterations = A.Length;
     for(u32 Index = 0;Index < MaxIterations;++Index)
@@ -421,10 +420,10 @@ APIDEF int CompareStringtoChar(Yostr A, char* B)
     return true;
 }
  
-APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations)
+APIDEF int CompareCharToChar(const char* A,const char* B,u32 MaxIterations)
 {
-    char* APtr = A;
-    char* BPtr = B;
+    const char* APtr = A;
+    const char* BPtr = B;
         
     for(u32 Index = 0;Index < MaxIterations;++Index)
     {
@@ -436,10 +435,9 @@ APIDEF int CompareCharToChar(char* A, char* B,u32 MaxIterations)
     return true;
 }
 
-APIDEF b32 CompareChars(char *A, char *B)
+APIDEF b32 CompareChars(const char *A,const char *B)
 {
     b32 Result = (A == B);
-    
     if(A && B)
     {
         while(*A && *B && (*A == *B))
@@ -447,7 +445,6 @@ APIDEF b32 CompareChars(char *A, char *B)
             ++A;
             ++B;
         }
-        
         Result = ((*A == 0) && (*B == 0));
     }
     return(Result);
@@ -464,7 +461,8 @@ APIDEF void PrintStringToConsole(Yostr String)
     }
 }
 
-
+//TODO(Ray):This is dumb we set the string pointer to a literal pointer fix this!
+//Makes no sense
 APIDEF Yostr GetFilenameFromPathChar(char* pathwithfilename,uint64_t length,MemoryArena* string_mem)
 {
     Yostr result;
@@ -922,7 +920,7 @@ APIDEF void PlatformOutputToConsole(b32 UseToggle,const char* FormatString,va_li
         char TextBuffer[10000];
 #if WINDOWS
 		vsprintf(TextBuffer,FormatString, list);
-		OutputDebugString(TextBuffer);
+		OutputDebugStringA(TextBuffer);
 #elif OSX || IOS
         vsprintf(TextBuffer, FormatString, list);
         printf("%s",TextBuffer);
