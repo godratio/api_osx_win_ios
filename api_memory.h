@@ -27,8 +27,8 @@ struct MemoryArena
 {
     void* base;
     memory_index size;
-    u32 used;
-    u32 temp_count;
+    uint64_t used;
+    uint64_t temp_count;
 };
 
 struct temp_memory
@@ -112,7 +112,7 @@ inline MemoryArena PlatformAllocatePartition(memory_index Size);
 #define PushArray(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
 #define PushStruct(Partition,Type,...) (Type*)PushSize_(Partition,sizeof(Type),## __VA_ARGS__)
 #define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
- void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams = DefaultPartitionParams());
+ void* PushSize_(MemoryArena*Partition,uint64_t Size,partition_push_params PushParams = DefaultPartitionParams());
 inline partition_push_params NoClear();
 inline char *PushCharString(MemoryArena *Partition, char *CharString);
 
@@ -409,7 +409,7 @@ void ClearToZero(void* Mem,u32 Size)
     }
 }
 
-void* PushSize_(MemoryArena*Partition, u32 Size,partition_push_params PushParams)
+void* PushSize_(MemoryArena*Partition,uint64_t Size,partition_push_params PushParams)
 {
     Assert(Partition->used + Size <= Partition->size)
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))
