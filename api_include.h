@@ -52,7 +52,6 @@ enum var_type
 #include "api_memory.h"
 #include "api_parse.h"
 #include "api_tokenizer.h"
-#include "api_vector.h"
 #include "api_hashtable.h"
 
 #include "api_file.h"

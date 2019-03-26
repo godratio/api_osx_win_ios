@@ -351,6 +351,8 @@ APIDEF Yostr AllocateEmptyString(MemoryArena* Partition)
     return CreateStringFromLiteral("",Partition);
 }
 
+//NOTE(Ray):TODO(Ray):This can probably be done better now with a vector but I think at the time I wrote this I was just
+//trying cray cray stuff.  Probably will never use this again consider deletion/deprecation.
 APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(const char* String,const char* End,duel_memory_partition* Memory)
 {
     Yostr* Result = (Yostr*)PushSize(&Memory->FixedSized, sizeof(Yostr));
@@ -365,11 +367,10 @@ APIDEF Yostr* API_CreateStringFromToPointer_WithSplitMem(const char* String,cons
         Result->Length++;
         At++;
     }
+
     //One more for a possible null char.
-    (char*)PushSize(&Memory->VariableSized, 1);
     Result->String = (char*)StartPointer;
-    
-    //*Result = NullTerminate(*Result);
+    *Result = NullTerminate(*Result,&Memory->VariableSized);
     return Result;
 }
 
@@ -767,11 +768,11 @@ APIDEF strings API_String_Split(Yostr Source,char* Separator,duel_memory_partiti
         {
             
             Result.Strings = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
-            Yostr * StringStart = Result.Strings;
         }
         else 
         {
-            Yostr* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
+            Assert(false)
+            //Yostr* P = API_CreateStringFromToPointer_WithSplitMem(Start, At, Memory);
         }
         Result.StringCount++;
     }

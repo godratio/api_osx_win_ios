@@ -264,10 +264,9 @@ IOSGetAllFilesInDir(Yostr Path,MemoryArena *StringMem)
     dir_files_result Result;
     Result.Files = YoyoInitVector(1000,sizeof(file_info),false);
     
-    char* WildCard = "\\*";
+//    char* WildCard = "\\*";
 //    Yostr WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard,StringMem), StringMem);
     CFAllocatorRef alloc = CFAllocatorGetDefault();
-    char* Dir = Path.String;
     CFStringRef DirRef = CFStringCreateWithCString(alloc, Path.String, kCFStringEncodingASCII);
     CFURLRef UrlRef = CFURLCreateWithString(alloc, DirRef, NULL);
     CFURLEnumeratorRef Enumerator = CFURLEnumeratorCreateForDirectoryURL(alloc, UrlRef, kCFURLEnumeratorDefaultBehavior, 0);
@@ -377,8 +376,7 @@ dir_files_result Win32GetAllFilesInDir(Yostr Path, MemoryArena* StringMem)
 {
 	dir_files_result Result;
 
-	char* WildCard = (char*)"\\*";
-	Yostr WildCardPath = AppendString(Path, CreateStringFromLiteral(WildCard, StringMem), StringMem);
+	Yostr WildCardPath = AppendString(Path, CreateStringFromLiteral("\\*", StringMem), StringMem);
 
 	Result.Files = YoyoInitVector(1000, file_info,false);
 	//WIN32_FIND_DATA ffd;

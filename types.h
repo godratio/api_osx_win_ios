@@ -43,7 +43,6 @@ typedef intptr_t memory_index;
 
 //TODO(Ray):Use compiler intrinsic where available ie..Clang GCC MSVC
 //It seems that this may get optimized out of some compilers. also annoying warning.
-#define Assert(Expression) if(!(Expression)){*(int *)0 = 0;};
 #define ArrayCount(Array) sizeof(Array) / sizeof((Array)[0])
 
 //NOTE(ray):These are helpful because static has different functionality in different contexts.
@@ -63,7 +62,6 @@ typedef intptr_t memory_index;
 #define R32Minimum -FLT_MAX
 #define f32Maximum FLT_MAX
 #define f32Minimum -FLT_MAX
-
 
 #define TYPE_H
 #endif

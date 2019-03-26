@@ -1,6 +1,6 @@
 #if !defined(API_TOKENIZER_H)
 
-#include "api_vector.h"
+#include "../yoyo/yoyoyo_ascii_vector.h"
 
 enum token_type
 {
@@ -47,12 +47,12 @@ struct csv_field
 
 struct csv_line
 {
-    vector Fields;
+    YoyoVector Fields;
 };
 
 struct csv_data
 {
-    vector Lines;
+    YoyoVector Lines;
 };
 
 
@@ -68,12 +68,12 @@ struct cfg_block
 {
     b32 IsDef;
     Yostr Name;
-    vector Entries;
+    YoyoVector Entries;
 };
 
 struct cfg_data
 {
-    vector Blocks;
+    YoyoVector Blocks;
 };
 
  b32 IsWhiteSpace(char At);
@@ -129,7 +129,7 @@ csv_data ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount);
 
 #ifdef YOYOIMPL
 
-vector Tokens;
+YoyoVector Tokens;
 
  b32 IsWhiteSpace(char At)
 {
@@ -265,10 +265,10 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
     token Result;
     EatAllWhiteSpace(Tokenizer,true);
     
-    Yostr* TokenString;
-    token_type Type;
-    u32 TokenLength = 0;
-    char *Start = Tokenizer->At;
+//    Yostr* TokenString;
+//    token_type Type;
+//    u32 TokenLength = 0;
+//    char *Start = Tokenizer->At;
     b32 HasAdvanced = false;
     while (!IsWhiteSpace(*Tokenizer->At))
     {
@@ -281,7 +281,6 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
                 Result.Type = Token_Comment;
                 Result.Data = CreateStringFromToChar(Tokenizer->At, "\n",Partition);
                 while (!IsNewLine(*Tokenizer->At++))continue;
-                HasAdvanced = true;
                 return Result;
             }break;
             case '(': {Result.Type = Token_OpenParen; }break;
@@ -331,13 +330,11 @@ GetToken(tokenizer *Tokenizer,MemoryArena* Partition)
                     //iteration.
                     //Tokenizer->At--;
                 }
-                //HasAdvanced = true;
+                HasAdvanced = true;
                 return Result;
             }break;
         }
         if(!HasAdvanced)++Tokenizer->At;
-        
-        
     }
     return Result;
 }
@@ -358,10 +355,10 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
     {
         ++Tokenizer->At;
     }
-    Yostr* TokenString;
-    token_type Type;
-    u32 TokenLength = 0;
-    char *Start = Tokenizer->At;
+//    Yostr* TokenString;
+//    token_type Type;
+//    u32 TokenLength = 0;
+//    char *Start = Tokenizer->At;
     b32 HasAdvanced = false;
     while (!(*Tokenizer->At == ' '  ||
              *Tokenizer->At == '\t'))
@@ -419,44 +416,42 @@ GetCSVToken(tokenizer *Tokenizer,MemoryArena* Partition)
     return Result;
 }
 
-
-
 //NOTE(ray):Output will be a vector
  csv_data
 ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
 {
     csv_data Data;
     u32 MemSize = 10000;
-    Data.Lines = CreateVector(MemSize, sizeof(csv_line));
+    Data.Lines = YoyoInitVectorSize(MemSize, sizeof(csv_line),false);
     
     b32 IsParsing = true;
     tokenizer Tokenizer = {0};
     Tokenizer.At = TextString;
-    vector TokenVector = CreateVector(MemSize, sizeof(token));
+    YoyoVector TokenVector = YoyoInitVectorSize(MemSize, sizeof(token),false);
     
     //token *Token;
-    u32 LineNumber = 0;
-    csv_line* CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-    CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
+//    u32 LineNumber = 0;
+    csv_line* CurrentLine = YoyoPushAndCastEmptyVectorElement(csv_line,&Data.Lines);
+    CurrentLine->Fields = YoyoInitVectorSize(FieldCount,sizeof(csv_field),false);
     token PrevToken;
     while(IsParsing)
     {
         token Token = GetCSVToken(&Tokenizer, &Memory);
-        PushVectorElement(&TokenVector, &Token);
+        YoyoPushBack(&TokenVector, Token);
         
         if(Token.Type == Token_Identifier)
         {
             csv_field Field;
             Field.Text = Token.Data;
-            PushVectorElement(&CurrentLine->Fields,&Field);
+            YoyoPushBack(&CurrentLine->Fields,Field);
         }
         else if(Token.Type == Token_ReturnCarriage || Token.Type == Token_NewLine)
         {
             if(PrevToken.Type != Token_ReturnCarriage)
             {
-                ++LineNumber;
-                CurrentLine = PushAndCastEmptyVectorElement(csv_line,&Data.Lines);
-                CurrentLine->Fields = CreateVector(FieldCount,sizeof(csv_field));
+//                ++LineNumber;
+                CurrentLine = YoyoPushAndCastEmptyVectorElement(csv_line,&Data.Lines);
+                CurrentLine->Fields = YoyoInitVectorSize(FieldCount,sizeof(csv_field),false);
             }
         }
         
@@ -467,7 +462,7 @@ ParseCSV(MemoryArena Memory, char* TextString,u32 FieldCount)
         PrevToken = Token;
     }
     
-    FreeVectorMem(&TokenVector);
+    YoyoFreeVectorMem(&TokenVector);
     return Data;
 }
 
@@ -561,7 +556,7 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
             if(Token.Type == Token_String)
             {
                 EntryCanidate.Text = Token.Data;
-                PushVectorElement(&Block->Entries, &EntryCanidate);
+                YoyoPushBack(&Block->Entries, EntryCanidate);
                 ParseConfigKeyValues(Block,Tokenizer, Memory);
             }
             else
@@ -584,9 +579,9 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
 {
     Yostr TaskName = NameToken.Data;
     
-    cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    cfg_block *Block = (cfg_block*)YoyoPushEmptyVectorElement(&Data->Blocks);
     Block->Name = TaskName;
-    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    Block->Entries = YoyoInitVectorSize(MAX_BLOCKS, sizeof(cfg_entry),false);
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
@@ -596,10 +591,10 @@ GetCFGToken(tokenizer *Tokenizer, MemoryArena* Partition)
     token NameToken = GetCFGToken(Tokenizer,Memory);
     Yostr TaskName = NameToken.Data;
     
-    cfg_block *Block = (cfg_block*)PushEmptyVectorElement(&Data->Blocks);
+    cfg_block *Block = (cfg_block*)YoyoPushEmptyVectorElement(&Data->Blocks);
     Block->Name = TaskName;
     Block->IsDef = true;
-    Block->Entries = CreateVector(MAX_BLOCKS, sizeof(cfg_entry));
+    Block->Entries = YoyoInitVector(MAX_BLOCKS, sizeof(cfg_entry),false);
     ParseConfigKeyValues(Block,Tokenizer, Memory);
     
 }
@@ -609,14 +604,14 @@ ParseConfig(MemoryArena *Memory, char* TextString)
 {
 	cfg_data Data;
 	u32 MemSize = 30;
-	Data.Blocks = CreateVector(MemSize, sizeof(cfg_block));
+	Data.Blocks = YoyoInitVector(MemSize, sizeof(cfg_block),false);
     
-    b32 IsParsing = true;
+//    b32 IsParsing = true;
 	tokenizer Tokenizer = { 0 };
 	Tokenizer.At = TextString;
 
-	u32 LineNumber = 0;
-	token PrevToken;
+///	u32 LineNumber = 0;
+//	token PrevToken;
     
     for (;;)
     {

@@ -1,3 +1,6 @@
+//TODO(Ray):DELETE
+#if 0
+
 #if !defined(API_HASHTABLE_H)
 #include "types.h"
 #include "api_vector.h"
@@ -119,4 +122,5 @@ u64 UHashMod(const char *Key, unsigned TableSize)
 }
 #endif
 #define API_HASHTABLE
+#endif
 #endif

@@ -1,3 +1,5 @@
+//TODO(Ray):DELETE
+#if 0
 /*
 author: Ray Garner 
 email : raygarner13@gmail.com
@@ -130,7 +132,6 @@ static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
     Assert(Vector->Pushable);
 	Assert(Vector->StartAt == -1);//You must have forget to reset the vector or are trying to resize during iteration.
 
-    //TODO(Ray):Test this.
     //check if we have space if not resize to create it.
     if(Vector->TotalSize < Vector->UnitSize * Vector->Count + 1)
     {
@@ -141,15 +142,17 @@ static u32 PushVectorElement(vector* Vector, void* Element, bool Copy = true)
 		Vector->TotalSize = new_size;
     }
 
-    //TODO(ray):have some protection here to make sure we are added in the right type.
     uint8_t *Ptr = (uint8_t*)PushSize(Vector->Partition, Vector->UnitSize);
     if(!Ptr)
     {
+        memory_index old_size = Vector->Partition->size;
         u32 NewMemSize = Vector->TotalSize*2;
         //Get more mem
         Ptr = (u8*)PlatformAllocateMemory(NewMemSize);
         memcpy(Vector->Partition->base,Ptr,NewMemSize);
         Ptr = Ptr + Vector->TotalSize;
+        PlatformDeAllocateMemory(Vector->Base, old_size);
+        Vector->Base = Vector->Partition->base;
     }
     if (Copy)
     {
@@ -302,3 +305,5 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+
+#endif

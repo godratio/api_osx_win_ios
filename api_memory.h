@@ -27,14 +27,14 @@ struct MemoryArena
 {
     void* base;
     memory_index size;
-    uint64_t used;
-    uint64_t temp_count;
+    memory_index used;
+    memory_index temp_count;
 };
 
 struct temp_memory
 {
     MemoryArena *Partition;
-    u32 used;
+    memory_index used;
 };
 
 struct duel_memory_partition
@@ -77,9 +77,9 @@ inline memory_index GetAlignmentOffset(MemoryArena *Arena, memory_index Alignmen
 
  void FreeMemoryPartion(MemoryArena* Partition);
 
- MemoryArena AllocateMemoryPartition(u32 Size);
+ MemoryArena AllocateMemoryPartition(memory_index Size);
 
- duel_memory_partition AllocateDuelMemoryPartition(u32 Size);
+ duel_memory_partition AllocateDuelMemoryPartition(memory_index Size);
 
 inline void AllocatePartition(MemoryArena *Partition, memory_index Size, void* Base);
 
@@ -103,20 +103,20 @@ inline MemoryArena PlatformAllocatePartition(memory_index Size);
 
  b32 TestFlag(u32 Flag, u32 TestAgaist);
 
- void ClearSize(MemoryArena *Partition,u32 Size);
+ void ClearSize(MemoryArena *Partition,memory_index Size);
 
 #define ZeroStruct(Instance) ClearToZero(&(Instance),sizeof(Instance))
 #define ZeroArray(Count, Pointer) ClearToZero(Pointer,Count*sizeof((Pointer)[0]))
- void ClearToZero(void* Mem,u32 Size);
+ void ClearToZero(void* Mem,memory_index Size);
 
 #define PushArray(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
 #define PushStruct(Partition,Type,...) (Type*)PushSize_(Partition,sizeof(Type),## __VA_ARGS__)
 #define PushSize(Partition,Size,...) PushSize_(Partition,Size,## __VA_ARGS__)
- void* PushSize_(MemoryArena*Partition,uint64_t Size,partition_push_params PushParams = DefaultPartitionParams());
+ void* PushSize_(MemoryArena*Partition,memory_index Size,partition_push_params PushParams = DefaultPartitionParams());
 inline partition_push_params NoClear();
 inline char *PushCharString(MemoryArena *Partition, char *CharString);
 
-#define PushArrayA(Partition,Type,Count,...) (Type*)PushSize_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
+#define PushArrayA(Partition,Type,Count,...) (Type*)PushSizeA_(Partition,sizeof(Type)*Count,## __VA_ARGS__)
 #define PushStructA(Partition,Type,...) (Type*)PushSizeA_(Partition,sizeof(Type),## __VA_ARGS__)
 #define PushSizeA(Partition,Size,...) PushSizeA_(Partition,Size,## __VA_ARGS__)
 
@@ -149,19 +149,14 @@ void OSXDeAllocateMemory(void* Memory,s64 size)
 void* IOSAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
-    kern_return_t kr;
     mach_vm_size_t size = (mach_vm_size_t)in_size;
-    kr = _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
-    //TODO(ray):Make sure this actually casts properly.
+    _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
     return (void*)address;
 }
 
 void IOSDeAllocateMemory(void* Memory,s64 size)
 {
-    mach_vm_address_t Address = (mach_vm_address_t)Memory;
-    //mach_vm_size_t MachSize = (mach_vm_size_t)size;
-    //vm_deallocate(mach_task_self(), Address, size);
-    _kernelrpc_mach_vm_deallocate_trap(mach_task_self(), Address, size);
+    _kernelrpc_mach_vm_deallocate_trap(mach_task_self(), (mach_vm_address_t)Memory, size);
 }
 #endif
 
@@ -299,7 +294,7 @@ void FreeMemoryPartion(MemoryArena* Partition)
     PlatformDeAllocateMemory(Partition->base,Partition->size);    
 }
 
-MemoryArena AllocateMemoryPartition(u32 Size)
+MemoryArena AllocateMemoryPartition(memory_index Size)
 {
     MemoryArena Result;
     void* Base = PlatformAllocateMemory(Size);
@@ -310,7 +305,7 @@ MemoryArena AllocateMemoryPartition(u32 Size)
     return Result;    
 }
 
-duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
+duel_memory_partition AllocateDuelMemoryPartition(memory_index Size)
 {
     duel_memory_partition Result;
     Result.FixedSized = AllocateMemoryPartition(Size);
@@ -321,7 +316,7 @@ duel_memory_partition AllocateDuelMemoryPartition(u32 Size)
 //TODO(ray):Fix this to clear more effeciently. or give option for clearing  method
 void ClearToZero(MemoryArena *Partition)
 {
-    for (u32 ByteIndex = 0; ByteIndex < Partition->size; ++ByteIndex)
+    for (memory_index ByteIndex = 0; ByteIndex < Partition->size; ++ByteIndex)
     {
         uint8_t* Byte = (uint8_t*)Partition->base + ByteIndex;
         *Byte = 0;
@@ -376,7 +371,7 @@ b32 TestFlag(u32 Flag, u32 TestAgaist)
     return false;
 }
 
-void ClearSize(MemoryArena *Partition,u32 Size)
+void ClearSize(MemoryArena *Partition,memory_index Size)
 {
     Assert(Size > 0)
         Size--;
@@ -399,7 +394,7 @@ void ClearSize(MemoryArena *Partition,u32 Size)
     }
 }
 
-void ClearToZero(void* Mem,u32 Size)
+void ClearToZero(void* Mem,memory_index Size)
 {
     Assert(Size > 0)
         u8* Byte = (u8*)Mem;
@@ -409,7 +404,7 @@ void ClearToZero(void* Mem,u32 Size)
     }
 }
 
-void* PushSize_(MemoryArena*Partition,uint64_t Size,partition_push_params PushParams)
+void* PushSize_(MemoryArena*Partition,memory_index Size,partition_push_params PushParams)
 {
     Assert(Partition->used + Size <= Partition->size)
     if (TestFlag(PushParams.Flags, PartitionFlag_ClearToZero))

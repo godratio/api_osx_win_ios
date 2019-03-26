@@ -58,7 +58,7 @@ APIDEF void EndBlock(Yostr* StringToUse,MemoryArena* StringPartition)
 APIDEF void DeclareAndAssignVariable(Yostr* StringToUse,Yostr* VarName, Yostr* Value,MemoryArena* StringPartition)
 {
 
-    var_type VarType = GetTypeForString(Value);
+    //var_type VarType = GetTypeForString(Value);
 //    string* 
     AppendCharToStringAndAdvace(StringToUse, CTypeCharPtrText , StringPartition);
     AppendCharToStringAndAdvace(StringToUse, WhiteSpaceText, StringPartition);
