@@ -35,12 +35,6 @@ typedef uintptr_t uintptr;
 
 typedef u32 b32;
 
-#ifdef OSX
-typedef __darwin_size_t memory_index;
-#else
-typedef intptr_t memory_index;
-#endif
-
 //TODO(Ray):Use compiler intrinsic where available ie..Clang GCC MSVC
 //It seems that this may get optimized out of some compilers. also annoying warning.
 #define ArrayCount(Array) sizeof(Array) / sizeof((Array)[0])

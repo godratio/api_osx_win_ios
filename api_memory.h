@@ -67,7 +67,13 @@ inline partition_push_params DefaultPartitionParams();
 
 void* GetPartitionPointer(MemoryArena Partition);
 
-void* PlatformAllocateMemory(memory_index in_size);
+#if YOYO_DIAG
+inline void* PlatformAllocateMemory(memory_index in_size)
+#else
+#define PlatformAllocateMemory(in_size) PlatformAllocateMemory_(in_size)
+
+void* PlatformAllocateMemory_(memory_index in_size);
+#endif    
 
 void PlatformDeAllocateMemory(void* Memory, memory_index in_size);
 
@@ -150,7 +156,9 @@ void* IOSAllocateMemory(memory_index in_size)
 {
     mach_vm_address_t address;
     mach_vm_size_t size = (mach_vm_size_t)in_size;
+
     _kernelrpc_mach_vm_allocate_trap(mach_task_self(), &address, size, VM_FLAGS_ANYWHERE);
+
     return (void*)address;
 }
 
@@ -197,7 +205,13 @@ inline partition_push_params DefaultPartitionParams()
     return(Params);
 }
 
+#if YOYO_DIAG
 inline void* PlatformAllocateMemory(memory_index in_size)
+#else
+#define PlatformAllocateMemory(in_size) PlatformAllocateMemory_(in_size);AllocEntry(in_size);
+
+inline void* PlatformAllocateMemory_(memory_index in_size)
+#endif
 {
     void* Result;
 #if OSX
@@ -207,6 +221,7 @@ inline void* PlatformAllocateMemory(memory_index in_size)
 #elif IOS
     Result = IOSAllocateMemory(in_size);
 #endif
+
     return Result;
 }
 
