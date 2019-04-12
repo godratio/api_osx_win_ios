@@ -75,7 +75,12 @@ inline void* PlatformAllocateMemory(memory_index in_size)
 void* PlatformAllocateMemory_(memory_index in_size);
 #endif    
 
-void PlatformDeAllocateMemory(void* Memory, memory_index in_size);
+#if YOYO_DIAG
+inline void* PlatformDeAllocateMemory(void* Memory,memory_index in_size);
+#else 
+#define PlatformDeAllocateMemory(mem,in_size) PlatformAllocateMemory_(mem,in_size)
+void PlatformDeAllocateMemory_(void* Memory, memory_index in_size);
+#endif
 
 inline memory_index GetAlignmentOffset(MemoryArena *Arena, memory_index Alignment);
  
