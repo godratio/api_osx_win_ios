@@ -210,7 +210,7 @@ inline partition_push_params DefaultPartitionParams()
     return(Params);
 }
 
-#if YOYO_DIAG
+#if !YOYO_DIAG
 inline void* PlatformAllocateMemory(memory_index in_size)
 #else
 #define PlatformAllocateMemory(in_size) PlatformAllocateMemory_(in_size);AllocEntry(in_size);
